@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.next/
+.env.local
+*.log
+drizzle/
+.DS_Store
+data/
+public/uploads/
+.env

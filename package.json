@@ -1,0 +1,21 @@
+{
+  "name": "threaddesk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Omnichannel communication platform",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install",
+    "db:generate": "cd backend && npm run db:generate",
+    "db:migrate": "cd backend && npm run db:migrate",
+    "db:push": "cd backend && npm run db:push",
+    "db:studio": "cd backend && npm run db:studio",
+    "lint:all": "cd frontend && npm run lint && cd ../backend && npm run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
