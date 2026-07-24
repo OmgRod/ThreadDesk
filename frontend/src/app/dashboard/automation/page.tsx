@@ -1,12 +1,12 @@
 "use client";
 
+import {
+  Loader2, Zap, Plus, Trash2, Mail, MessageCircle, Webhook,
+  Rss, ChevronDown, ChevronUp, Twitter, Linkedin, Pause, Check, ArrowRight, Globe, Play
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Loader2, Zap, Plus, Trash2, Mail, MessageCircle, Webhook,
-  Rss, ChevronDown, ChevronUp, Twitter, Linkedin, Pause, Check, ArrowRight
-} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
@@ -23,9 +23,11 @@ const ACTION_TYPES = [
   { value: "discord", label: "Discord Webhook", icon: MessageCircle, color: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400", description: "Post a message to a Discord channel via webhook." },
   { value: "http", label: "HTTP Webhook", icon: Webhook, color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400", description: "Send a JSON payload to any URL." },
   { value: "rss", label: "RSS Feed", icon: Rss, color: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", description: "Update an RSS feed with the new post." },
-  { value: "slack", label: "Slack (coming soon)", icon: MessageCircle, color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", description: "Post to a Slack channel.", disabled: true },
-  { value: "twitter", label: "X / Twitter (coming soon)", icon: Twitter, color: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400", description: "Share to X / Twitter.", disabled: true },
-  { value: "linkedin", label: "LinkedIn (coming soon)", icon: Linkedin, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300", description: "Share to LinkedIn.", disabled: true },
+  { value: "slack", label: "Slack", icon: MessageCircle, color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", description: "Post to a Slack channel." },
+  { value: "twitter", label: "X / Twitter", icon: Twitter, color: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400", description: "Share to X / Twitter." },
+  { value: "linkedin", label: "LinkedIn", icon: Linkedin, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300", description: "Share to LinkedIn." },
+  { value: "youtube", label: "YouTube Community", icon: Play, color: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400", description: "Share to YouTube Community." },
+  { value: "bluesky", label: "Bluesky", icon: Globe, color: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400", description: "Share to Bluesky." },
 ];
 
 interface Action {
@@ -381,19 +383,13 @@ export default function AutomationPage() {
                       return (
                         <button
                           key={actionType.value}
-                          disabled={actionType.disabled}
                           onClick={() => addAction(actionType.value)}
-                          className={cn(
-                            "flex items-center gap-2 p-3 rounded-xl border-2 border-dashed text-sm transition-all",
-                            actionType.disabled
-                              ? "opacity-40 cursor-not-allowed border-border"
-                              : "hover:border-primary/60 hover:bg-primary/5 border-border"
-                          )}
+                          className="flex items-center gap-2 p-3 rounded-xl border-2 border-dashed text-sm transition-all hover:border-primary/60 hover:bg-primary/5 border-border"
                         >
                           <div className={`p-1.5 rounded-lg ${actionType.color}`}>
                             <Icon className="h-3.5 w-3.5" />
                           </div>
-                          <span className="text-xs font-medium leading-tight">{actionType.label.replace(" (coming soon)", "")}</span>
+                          <span className="text-xs font-medium leading-tight">{actionType.label}</span>
                         </button>
                       );
                     })}

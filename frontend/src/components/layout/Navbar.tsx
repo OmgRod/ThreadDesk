@@ -83,16 +83,14 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
           {!loading && (
             user ? (
               <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <Button variant="outline" className="relative h-9 w-9 rounded-full p-0 border-primary/20">
-                    {user.avatar ? (
-                      <img src={fixUploadUrl(user.avatar)} alt="avatar" className="rounded-full h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/10">
-                        <UserIcon className="h-4 w-4 text-primary" />
-                      </div>
-                    )}
-                  </Button>
+                <DropdownMenuTrigger className="relative h-9 w-9 rounded-full border border-primary/20 flex items-center justify-center overflow-hidden hover:bg-accent hover:text-accent-foreground">
+                  {user.avatar ? (
+                    <img src={fixUploadUrl(user.avatar)} alt="avatar" className="rounded-full h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/10">
+                      <UserIcon className="h-4 w-4 text-primary" />
+                    </div>
+                  )}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end">
                   <DropdownMenuGroup>

@@ -52,7 +52,7 @@ await app.register(fastifyStatic, {
   prefix: "/api/uploads",
 });
 await app.register(rateLimit, {
-  max: 100,
+  max: 500,
   timeWindow: "1 minute",
   redis: redis,
 });

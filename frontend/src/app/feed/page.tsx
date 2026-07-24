@@ -48,7 +48,7 @@ export default function FeedPage() {
     <div className="min-h-screen flex flex-col bg-muted/20">
       <Navbar />
 
-      <div className="max-w-3xl mx-auto px-4 py-8 flex-1">
+      <div className="px-4 py-8 flex-1">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Your Feed</h1>
           <button
@@ -70,7 +70,7 @@ export default function FeedPage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {posts.map((post: any) => (
               <Link
                 key={post.id}
@@ -96,7 +96,7 @@ export default function FeedPage() {
             ))}
 
             {hasMore && (
-              <div className="text-center py-4">
+              <div className="text-center py-4 col-span-full">
                 <button
                   onClick={() => loadFeed(page + 1)}
                   disabled={loading}
