@@ -2,7 +2,7 @@
 
 import {
   Loader2, Zap, Plus, Trash2, Mail, MessageCircle, Webhook,
-  Rss, ChevronDown, ChevronUp, Twitter, Linkedin, Pause, Check, ArrowRight, Globe, Play
+  Rss, ChevronDown, ChevronUp, Pause, Check, ArrowRight
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -24,10 +24,6 @@ const ACTION_TYPES = [
   { value: "http", label: "HTTP Webhook", icon: Webhook, color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400", description: "Send a JSON payload to any URL." },
   { value: "rss", label: "RSS Feed", icon: Rss, color: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", description: "Update an RSS feed with the new post." },
   { value: "slack", label: "Slack", icon: MessageCircle, color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", description: "Post to a Slack channel." },
-  { value: "twitter", label: "X / Twitter", icon: Twitter, color: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400", description: "Share to X / Twitter." },
-  { value: "linkedin", label: "LinkedIn", icon: Linkedin, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300", description: "Share to LinkedIn." },
-  { value: "youtube", label: "YouTube Community", icon: Play, color: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400", description: "Share to YouTube Community." },
-  { value: "bluesky", label: "Bluesky", icon: Globe, color: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400", description: "Share to Bluesky." },
 ];
 
 interface Action {

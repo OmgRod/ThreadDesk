@@ -8,8 +8,8 @@ export const Integrations = {
 export const getIntegrationSecrets = (integrationId: string) => {
   switch (integrationId) {
     case "email":
-      // User must provide these for their own mail server
-      return ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS"];
+      // These are no longer globally required, as they will be provided per-post/per-action
+      return [];
     case "discord":
       return ["DISCORD_WEBHOOK_URL"];
     case "slack":

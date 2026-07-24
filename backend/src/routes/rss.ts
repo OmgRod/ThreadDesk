@@ -31,11 +31,12 @@ export async function rssRoutes(app: FastifyInstance) {
       .orderBy(desc(schema.posts.createdAt))
       .limit(20);
 
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     const feed = new RSS({
       title: `${org.name} on ThreadDesk`,
       description: org.description || `Updates from ${org.name}`,
-      feed_url: `${process.env.FRONTEND_URL}/api/rss/${slug}`,
-      site_url: `${process.env.FRONTEND_URL}/orgs/${slug}`,
+      feed_url: `${frontendUrl}/api/rss/${slug}`,
+      site_url: `${frontendUrl}/orgs/${slug}`,
       image_url: org.logo || undefined,
       pubDate: new Date(),
     });
@@ -44,7 +45,7 @@ export async function rssRoutes(app: FastifyInstance) {
       feed.item({
         title: post.title,
         description: post.content.slice(0, 500) + (post.content.length > 500 ? "..." : ""),
-        url: `${process.env.FRONTEND_URL}/orgs/${slug}/posts/${post.id}`,
+        url: `${frontendUrl}/orgs/${slug}/posts/${post.id}`,
         date: post.createdAt,
       });
     }
