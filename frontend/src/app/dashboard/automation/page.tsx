@@ -14,8 +14,8 @@ import { Button } from "@/components/ui/button";
 
 const TRIGGER_OPTIONS = [
   { value: "new_post", label: "New Post Published", description: "Triggers whenever a post is published in this organization." },
-  { value: "scheduled", label: "Scheduled Event", description: "Triggers on a fixed schedule (e.g., daily digest)." },
-  { value: "incoming_webhook", label: "Incoming Webhook", description: "Triggers when an external service sends a webhook." },
+  { value: "scheduled", label: "Scheduled Event", description: "Triggers on a fixed schedule.", hasSchedule: true },
+  { value: "manual", label: "Manual Trigger", description: "Triggers only when explicitly selected during post creation." },
 ];
 
 const ACTION_TYPES = [
@@ -342,7 +342,10 @@ export default function AutomationPage() {
                 {TRIGGER_OPTIONS.map((trigger) => (
                   <button
                     key={trigger.value}
-                    onClick={() => { setForm((prev) => ({ ...prev, trigger: trigger.value })); setStep("actions"); }}
+                    onClick={() => { 
+                      setForm((prev) => ({ ...prev, trigger: trigger.value })); 
+                      if (!trigger.hasSchedule) setStep("actions");
+                    }}
                     className={cn(
                       "w-full text-left p-4 rounded-xl border-2 transition-all",
                       form.trigger === trigger.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
@@ -350,6 +353,18 @@ export default function AutomationPage() {
                   >
                     <p className="font-semibold text-sm">{trigger.label}</p>
                     <p className="text-xs text-muted-foreground mt-1">{trigger.description}</p>
+                    
+                    {trigger.hasSchedule && form.trigger === trigger.value && (
+                      <div className="mt-3 pt-3 border-t">
+                         <label className="text-xs font-medium">Schedule Time</label>
+                         <input 
+                           type="datetime-local" 
+                           className="w-full px-2 py-1 mt-1 border rounded text-xs"
+                           onChange={(e) => setForm(prev => ({...prev, config: {...prev.config, schedule: e.target.value}}))}
+                         />
+                         <Button size="sm" className="mt-2 text-xs" onClick={() => setStep("actions")}>Continue</Button>
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>

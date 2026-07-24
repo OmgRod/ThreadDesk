@@ -82,8 +82,7 @@ export default function DashboardPage() {
         title: postTitle,
         content: postContent,
         published: true,
-        overrideAutomation,
-        selectedPlatforms: overrideAutomation ? selectedPlatforms : [],
+        selectedWorkflows,
       }),
       credentials: "include",
     });
@@ -93,8 +92,7 @@ export default function DashboardPage() {
       setShowCreatePost(false);
       setPostTitle("");
       setPostContent("");
-      setOverrideAutomation(false);
-      setSelectedPlatforms([]);
+      setSelectedWorkflows([]);
       const postsRes = await fetch("/api/posts/dashboard/all", { credentials: "include" });
       setPosts(await postsRes.json());
     } else {
@@ -209,27 +207,22 @@ export default function DashboardPage() {
               />
               
               <div className="space-y-2 border p-3 rounded-lg">
-                <label className="flex items-center gap-2 font-medium text-sm">
-                  <input type="checkbox" checked={overrideAutomation} onChange={(e) => setOverrideAutomation(e.target.checked)} />
-                  Override Automation
-                </label>
-                {overrideAutomation && (
+                <label className="font-medium text-sm">Trigger Manual Workflows</label>
                   <div className="space-y-1 mt-2 text-sm">
-                    {Object.values(Integrations).map(platform => (
-                      <label key={platform.id} className="flex items-center gap-2">
+                    {manualWorkflows.map((wf: any) => (
+                      <label key={wf.id} className="flex items-center gap-2">
                         <input
                           type="checkbox"
-                          checked={selectedPlatforms.includes(platform.id)}
+                          checked={selectedWorkflows.includes(wf.id.toString())}
                           onChange={(e) => {
-                            if (e.target.checked) setSelectedPlatforms([...selectedPlatforms, platform.id]);
-                            else setSelectedPlatforms(selectedPlatforms.filter(p => p !== platform.id));
+                            if (e.target.checked) setSelectedWorkflows([...selectedWorkflows, wf.id.toString()]);
+                            else setSelectedWorkflows(selectedWorkflows.filter(id => id !== wf.id.toString()));
                           }}
                         />
-                        {platform.label}
+                        {wf.name}
                       </label>
                     ))}
                   </div>
-                )}
               </div>
 
               <div className="flex gap-2 justify-end">
