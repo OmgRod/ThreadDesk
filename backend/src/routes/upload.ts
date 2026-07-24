@@ -28,6 +28,6 @@ export async function uploadRoutes(app: FastifyInstance) {
     await pump(data.file, fs.createWriteStream(filePath));
 
     // Return the URL path
-    return { url: `/uploads/${filename}` };
+    return { url: `/api/uploads/uploads/${filename}` };
   });
 }

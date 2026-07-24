@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
   User, Shield, Trash2, AlertTriangle, Loader2,
@@ -11,7 +10,6 @@ import { toast } from "sonner";
 
 export default function AccountSettingsPage() {
   const { user, logout } = useAuth();
-  const router = useRouter();
 
   // Change name
   const [name, setName] = useState(user?.name || "");

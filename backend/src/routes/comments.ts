@@ -59,14 +59,46 @@ export async function commentRoutes(app: FastifyInstance) {
     if (!userId) return reply.status(401).send({ error: "Not authenticated" });
 
     const { id } = request.params as { id: string };
-    await db
-      .delete(schema.comments)
-      .where(
-        and(
-          eq(schema.comments.id, parseInt(id)),
-          eq(schema.comments.userId, parseInt(userId))
+
+    const [comment] = await db
+      .select()
+      .from(schema.comments)
+      .where(eq(schema.comments.id, parseInt(id)))
+      .limit(1);
+
+    if (!comment) return reply.status(404).send({ error: "Comment not found" });
+
+    // Check if user is author OR org owner/admin
+    const [post] = await db
+      .select()
+      .from(schema.posts)
+      .where(eq(schema.posts.id, comment.postId))
+      .limit(1);
+
+    const isAuthor = comment.userId === parseInt(userId);
+    let isOrgAdmin = false;
+
+    if (post) {
+      const [member] = await db
+        .select()
+        .from(schema.organizationMembers)
+        .where(
+          and(
+            eq(schema.organizationMembers.organizationId, post.organizationId),
+            eq(schema.organizationMembers.userId, parseInt(userId))
+          )
         )
-      );
+        .limit(1);
+      if (member && ["owner", "admin"].includes(member.role)) {
+        isOrgAdmin = true;
+      }
+    }
+
+    if (!isAuthor && !isOrgAdmin) {
+      return reply.status(403).send({ error: "Not authorized" });
+    }
+
+    await db.delete(schema.comments).where(eq(schema.comments.id, parseInt(id)));
 
     return { success: true };
   });

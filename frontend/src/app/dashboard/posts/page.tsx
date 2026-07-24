@@ -7,11 +7,14 @@ import { useAuth } from "@/context/AuthContext";
 import { Eye, Clock, Globe, Loader2, Edit3, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 export default function PostsPage() {
   const { user, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [postToDelete, setPostToDelete] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -31,21 +34,24 @@ export default function PostsPage() {
     load();
   }, [user, authLoading, router]);
 
-  const deletePost = async (id: string, orgId: string) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
-    const res = await fetch(`/api/posts/${id}`, {
+  const deletePost = async () => {
+    if (!postToDelete) return;
+
+    const res = await fetch(`/api/posts/${postToDelete.id}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ organizationId: orgId }),
+      body: JSON.stringify({ organizationId: postToDelete.orgId }),
       credentials: "include",
     });
 
     if (res.ok) {
       toast.success("Post deleted!");
-      setPosts(posts.filter((p) => p.id !== id));
+      setPosts(posts.filter((p) => p.id !== postToDelete.id));
+      setPostToDelete(null);
     } else {
       const data = await res.json();
       toast.error(data.error || "Failed to delete post");
+      setPostToDelete(null);
     }
   };
 
@@ -59,6 +65,14 @@ export default function PostsPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
+      <Modal isOpen={!!postToDelete} onClose={() => setPostToDelete(null)} title="Delete Post">
+        <p className="text-muted-foreground mb-4">Are you sure you want to delete this post? This action cannot be undone.</p>
+        <div className="flex gap-2 justify-end">
+          <Button variant="ghost" onClick={() => setPostToDelete(null)}>Cancel</Button>
+          <Button variant="destructive" onClick={deletePost}>Delete</Button>
+        </div>
+      </Modal>
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Posts</h1>
         <Link
@@ -103,7 +117,7 @@ export default function PostsPage() {
                     {post.visibility}
                   </span>
                   <button
-                    onClick={() => deletePost(post.id, post.organizationId)}
+                    onClick={() => setPostToDelete({ id: post.id, orgId: post.organizationId })}
                     className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />

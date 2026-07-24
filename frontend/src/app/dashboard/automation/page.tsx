@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
-  Loader2, Zap, Plus, Trash2, Toggle, Globe, Mail, MessageCircle, Webhook,
-  Rss, ChevronDown, ChevronUp, Twitter, Linkedin, Play, Pause, Check
+  Loader2, Zap, Plus, Trash2, Mail, MessageCircle, Webhook,
+  Rss, ChevronDown, ChevronUp, Twitter, Linkedin, Pause, Check, ArrowRight
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 const TRIGGER_OPTIONS = [
   { value: "new_post", label: "New Post Published", description: "Triggers whenever a post is published in this organization." },
@@ -185,6 +187,7 @@ export default function AutomationPage() {
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<"trigger" | "actions" | "name">("trigger");
   const [form, setForm] = useState<WorkflowForm>({ name: "", trigger: "", actions: [] });
+  const [workflowToDelete, setWorkflowToDelete] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -255,10 +258,10 @@ export default function AutomationPage() {
   }
 
   async function deleteWorkflow(id: number) {
-    if (!confirm("Delete this workflow?")) return;
     await fetch(`/api/workflows/${id}`, { method: "DELETE", credentials: "include" });
     setWorkflows((prev) => prev.filter((w) => w.id !== id));
     toast.success("Workflow deleted.");
+    setWorkflowToDelete(null);
   }
 
   function addAction(type: string) {
@@ -274,6 +277,13 @@ export default function AutomationPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
+      <Modal isOpen={workflowToDelete !== null} onClose={() => setWorkflowToDelete(null)} title="Delete Workflow">
+        <p className="text-muted-foreground mb-4">Are you sure you want to delete this workflow?</p>
+        <div className="flex gap-2 justify-end">
+          <Button variant="ghost" onClick={() => setWorkflowToDelete(null)}>Cancel</Button>
+          <Button variant="destructive" onClick={() => deleteWorkflow(workflowToDelete!)}>Delete</Button>
+        </div>
+      </Modal>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -394,9 +404,9 @@ export default function AutomationPage() {
                   <div className="flex justify-end pt-2">
                     <button
                       onClick={() => setStep("name")}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium flex items-center gap-2"
                     >
-                      Continue →
+                      Continue <ArrowRight className="h-4 w-4" />
                     </button>
                   </div>
                 )}
@@ -479,7 +489,7 @@ export default function AutomationPage() {
               key={workflow.id}
               workflow={workflow}
               onToggle={() => toggleWorkflow(workflow)}
-              onDelete={() => deleteWorkflow(workflow.id)}
+              onDelete={() => setWorkflowToDelete(workflow.id)}
             />
           ))}
         </div>

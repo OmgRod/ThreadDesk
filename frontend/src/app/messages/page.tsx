@@ -118,7 +118,7 @@ function MessagesContent() {
           {showSearch && searchResults.length > 0 && (
             <div className="mt-2 bg-background border rounded-lg shadow-lg z-10">
               {searchResults
-                .filter((u) => u.id !== user.id)
+                .filter((u) => u.id !== user?.id)
                 .map((u) => (
                   <button
                     key={u.id}
@@ -188,7 +188,7 @@ function MessagesContent() {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.map((msg) => {
-                const isMe = msg.senderId === user.id;
+                const isMe = msg.senderId === user?.id;
                 return (
                   <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${

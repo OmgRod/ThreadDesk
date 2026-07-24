@@ -66,13 +66,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-gray-800 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
-          &copy; {new Date().getFullYear()} ThreadDesk. All rights reserved.
-        </div>
-      </footer>
     </div>
   );
 }

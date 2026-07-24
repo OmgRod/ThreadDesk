@@ -3,11 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, Plus, Edit3, Eye, Clock, Globe, Loader2, LogOut, Moon, Sun } from "lucide-react";
+import { Plus, Edit3, Eye, Clock, Globe, Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
-import { useTheme } from "next-themes";
 import { useAuth } from "@/context/AuthContext";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { OrgCard } from "@/components/orgs/OrgCard";
+import { Integrations } from "@/lib/integrations";
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -22,6 +27,8 @@ export default function DashboardPage() {
   const [postOrgId, setPostOrgId] = useState("");
   const [postTitle, setPostTitle] = useState("");
   const [postContent, setPostContent] = useState("");
+  const [overrideAutomation, setOverrideAutomation] = useState(false);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -75,6 +82,8 @@ export default function DashboardPage() {
         title: postTitle,
         content: postContent,
         published: true,
+        overrideAutomation,
+        selectedPlatforms: overrideAutomation ? selectedPlatforms : [],
       }),
       credentials: "include",
     });
@@ -84,6 +93,8 @@ export default function DashboardPage() {
       setShowCreatePost(false);
       setPostTitle("");
       setPostContent("");
+      setOverrideAutomation(false);
+      setSelectedPlatforms([]);
       const postsRes = await fetch("/api/posts/dashboard/all", { credentials: "include" });
       setPosts(await postsRes.json());
     } else {
@@ -118,55 +129,38 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {showCreateOrg && (
-            <form onSubmit={createOrg} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4 space-y-3">
-              <input
+          <Modal isOpen={showCreateOrg} onClose={() => setShowCreateOrg(false)} title="Create Organization">
+            <form onSubmit={createOrg} className="space-y-4">
+              <Input
                 type="text"
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
                 placeholder="Organization name"
-                className="w-full px-3 py-2 border rounded-lg bg-transparent"
                 required
               />
-              <input
+              <Input
                 type="text"
                 value={orgSlug}
                 onChange={(e) => setOrgSlug(e.target.value)}
                 placeholder="slug (e.g., my-org)"
-                className="w-full px-3 py-2 border rounded-lg bg-transparent"
                 required
               />
-              <textarea
+              <Textarea
                 value={orgDesc}
                 onChange={(e) => setOrgDesc(e.target.value)}
                 placeholder="Description (optional)"
-                className="w-full px-3 py-2 border rounded-lg bg-transparent"
                 rows={2}
               />
-              <div className="flex gap-2">
-                <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm">Create</button>
-                <button type="button" onClick={() => setShowCreateOrg(false)} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="ghost" onClick={() => setShowCreateOrg(false)}>Cancel</Button>
+                <Button type="submit">Create</Button>
               </div>
             </form>
-          )}
+          </Modal>
 
           <div className="grid md:grid-cols-3 gap-4">
             {orgs.map((org: any) => (
-              <Link
-                key={org.id}
-                href={`/orgs/${org.slug}`}
-                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center text-primary-600 font-bold">
-                    {org.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-medium">{org.name}</p>
-                    <p className="text-xs text-gray-500 capitalize">{org.role}</p>
-                  </div>
-                </div>
-              </Link>
+              <OrgCard key={org.id} org={org} />
             ))}
           </div>
         </section>
@@ -186,12 +180,12 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {showCreatePost && (
-            <form onSubmit={createPost} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4 space-y-3">
+          <Modal isOpen={showCreatePost} onClose={() => setShowCreatePost(false)} title="Create Post">
+            <form onSubmit={createPost} className="space-y-4">
               <select
                 value={postOrgId}
                 onChange={(e) => setPostOrgId(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg bg-transparent"
+                className="w-full px-3 py-2 border rounded-lg bg-background"
                 required
               >
                 <option value="">Select organization</option>
@@ -199,28 +193,51 @@ export default function DashboardPage() {
                   <option key={org.id} value={org.id}>{org.name}</option>
                 ))}
               </select>
-              <input
+              <Input
                 type="text"
                 value={postTitle}
                 onChange={(e) => setPostTitle(e.target.value)}
                 placeholder="Post title"
-                className="w-full px-3 py-2 border rounded-lg bg-transparent"
                 required
               />
-              <textarea
+              <Textarea
                 value={postContent}
                 onChange={(e) => setPostContent(e.target.value)}
                 placeholder="Post content (Markdown supported)"
-                className="w-full px-3 py-2 border rounded-lg bg-transparent"
                 rows={4}
                 required
               />
-              <div className="flex gap-2">
-                <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm">Publish</button>
-                <button type="button" onClick={() => setShowCreatePost(false)} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+              
+              <div className="space-y-2 border p-3 rounded-lg">
+                <label className="flex items-center gap-2 font-medium text-sm">
+                  <input type="checkbox" checked={overrideAutomation} onChange={(e) => setOverrideAutomation(e.target.checked)} />
+                  Override Automation
+                </label>
+                {overrideAutomation && (
+                  <div className="space-y-1 mt-2 text-sm">
+                    {Object.values(Integrations).map(platform => (
+                      <label key={platform.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedPlatforms.includes(platform.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedPlatforms([...selectedPlatforms, platform.id]);
+                            else setSelectedPlatforms(selectedPlatforms.filter(p => p !== platform.id));
+                          }}
+                        />
+                        {platform.label}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="ghost" onClick={() => setShowCreatePost(false)}>Cancel</Button>
+                <Button type="submit">Publish</Button>
               </div>
             </form>
-          )}
+          </Modal>
 
           <div className="space-y-3">
             {posts.length === 0 ? (

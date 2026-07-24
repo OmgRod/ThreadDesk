@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Loader2, Settings2, Save, Upload, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { fixUploadUrl } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -168,7 +169,7 @@ export default function SettingsPage() {
                 <label className="text-sm font-medium">Organization Banner</label>
                 <div className="relative w-full h-40 bg-muted border-2 border-dashed rounded-xl overflow-hidden flex items-center justify-center group">
                   {banner ? (
-                    <img src={banner} alt="Banner" className="w-full h-full object-cover" />
+                    <img src={fixUploadUrl(banner)} alt="Banner" className="w-full h-full object-cover" />
                   ) : (
                     <div className="text-muted-foreground flex flex-col items-center">
                       <ImageIcon className="h-8 w-8 mb-2 opacity-50" />
@@ -197,7 +198,7 @@ export default function SettingsPage() {
                   <label className="text-sm font-medium">Logo</label>
                   <div className="relative w-32 h-32 bg-muted border-2 border-dashed rounded-xl overflow-hidden flex items-center justify-center group">
                     {logo ? (
-                      <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+                      <img src={fixUploadUrl(logo)} alt="Logo" className="w-full h-full object-cover" />
                     ) : (
                       <div className="text-muted-foreground flex flex-col items-center text-center p-2">
                         <ImageIcon className="h-6 w-6 mb-1 opacity-50" />

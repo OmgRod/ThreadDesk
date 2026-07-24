@@ -6,14 +6,20 @@ import Link from "next/link";
 import { Building2, Users, FileText, Trash2, Loader2, Shield } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
+import { User, Organization } from "@/types";
+
+// ...
 export default function AdminPage() {
-  const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
-  const [users, setUsers] = useState<any[]>([]);
-  const [orgs, setOrgs] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null); // Stats is complex, keeping any for now
+  const [users, setUsers] = useState<User[]>([]);
+  const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"stats" | "users" | "orgs">("stats");
+  const [userToDelete, setUserToDelete] = useState<number | null>(null);
+  const [orgToDelete, setOrgToDelete] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -24,7 +30,6 @@ export default function AdminPage() {
         router.push("/");
         return;
       }
-      setUser(meData);
 
       const [statsRes, usersRes, orgsRes] = await Promise.all([
         fetch("/api/admin/stats", { credentials: "include" }),
@@ -39,27 +44,29 @@ export default function AdminPage() {
     load();
   }, [router]);
 
-  const deleteUser = async (id: number) => {
-    if (!confirm("Delete this user?")) return;
-    const res = await fetch(`/api/admin/users/${id}`, {
+  const deleteUser = async () => {
+    if (userToDelete === null) return;
+    const res = await fetch(`/api/admin/users/${userToDelete}`, {
       method: "DELETE",
       credentials: "include",
     });
     if (res.ok) {
       toast.success("User deleted");
-      setUsers(users.filter((u) => u.id !== id));
+      setUsers(users.filter((u) => u.id !== userToDelete));
+      setUserToDelete(null);
     }
   };
 
-  const deleteOrg = async (id: number) => {
-    if (!confirm("Delete this organization?")) return;
-    const res = await fetch(`/api/admin/organizations/${id}`, {
+  const deleteOrg = async () => {
+    if (orgToDelete === null) return;
+    const res = await fetch(`/api/admin/organizations/${orgToDelete}`, {
       method: "DELETE",
       credentials: "include",
     });
     if (res.ok) {
       toast.success("Organization deleted");
-      setOrgs(orgs.filter((o) => o.id !== id));
+      setOrgs(orgs.filter((o) => o.id !== orgToDelete));
+      setOrgToDelete(null);
     }
   };
 
@@ -73,6 +80,22 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <Modal isOpen={userToDelete !== null} onClose={() => setUserToDelete(null)} title="Delete User">
+        <p className="text-muted-foreground mb-4">Are you sure you want to delete this user?</p>
+        <div className="flex gap-2 justify-end">
+          <Button variant="ghost" onClick={() => setUserToDelete(null)}>Cancel</Button>
+          <Button variant="destructive" onClick={deleteUser}>Delete</Button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={orgToDelete !== null} onClose={() => setOrgToDelete(null)} title="Delete Organization">
+        <p className="text-muted-foreground mb-4">Are you sure you want to delete this organization?</p>
+        <div className="flex gap-2 justify-end">
+          <Button variant="ghost" onClick={() => setOrgToDelete(null)}>Cancel</Button>
+          <Button variant="destructive" onClick={deleteOrg}>Delete</Button>
+        </div>
+      </Modal>
+
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
@@ -142,7 +165,7 @@ export default function AdminPage() {
                     <td className="px-4 py-3 text-sm text-gray-500">{formatDate(u.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => deleteUser(u.id)}
+                        onClick={() => setUserToDelete(u.id)}
                         className="p-1 text-red-500 hover:text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -176,7 +199,7 @@ export default function AdminPage() {
                     <td className="px-4 py-3 text-sm text-gray-500">{formatDate(o.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => deleteOrg(o.id)}
+                        onClick={() => setOrgToDelete(o.id)}
                         className="p-1 text-red-500 hover:text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />

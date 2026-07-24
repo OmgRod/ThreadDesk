@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Building2, Globe, MessageSquare } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
+import { fixUploadUrl } from "@/lib/utils";
+import { OrgCard } from "@/components/orgs/OrgCard";
 
 async function getUser(id: string) {
   try {
@@ -16,8 +18,9 @@ async function getUser(id: string) {
   }
 }
 
-export default async function PublicProfilePage({ params }: { params: { id: string } }) {
-  const user = await getUser(params.id);
+export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = await getUser(id);
 
   if (!user) {
     notFound();
@@ -37,7 +40,7 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
             <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end -mt-16 mb-8">
               <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-card bg-muted flex items-center justify-center text-4xl font-bold text-muted-foreground shadow-sm bg-white shrink-0">
                 {user.avatar ? (
-                  <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={fixUploadUrl(user.avatar)} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
                   user.name.charAt(0)
                 )}
@@ -58,14 +61,12 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
                 )}
               </div>
               
-              <div className="pb-2 w-full sm:w-auto">
-                <Button asChild className="w-full sm:w-auto rounded-full">
-                  <Link href={`/messages?userId=${user.id}`} className="inline-flex items-center gap-2">
+                <div className="pb-2 w-full sm:w-auto">
+                  <Button className="w-full sm:w-auto rounded-full" onClick={() => window.location.href = `/messages?userId=${user.id}`}>
                     <MessageSquare className="h-4 w-4" />
                     Message
-                  </Link>
-                </Button>
-              </div>
+                  </Button>
+                </div>
             </div>
 
             {/* Bio */}
@@ -82,19 +83,7 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Organizations</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {user.organizations.map((org: any) => (
-                    <Link
-                      key={org.id}
-                      href={`/orgs/${org.slug}`}
-                      className="group flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-accent hover:text-accent-foreground transition-colors"
-                    >
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center font-bold text-primary shrink-0 overflow-hidden">
-                        {org.logo ? <img src={org.logo} alt="Logo" className="w-full h-full object-cover" /> : org.name.charAt(0)}
-                      </div>
-                      <div className="overflow-hidden">
-                        <p className="font-semibold truncate group-hover:text-primary transition-colors">{org.name}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{org.role}</p>
-                      </div>
-                    </Link>
+                    <OrgCard key={org.id} org={org} />
                   ))}
                 </div>
               </div>

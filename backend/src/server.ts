@@ -49,7 +49,7 @@ await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
 await app.register(formbody);
 await app.register(fastifyStatic, {
   root: path.join(process.cwd(), "public"),
-  prefix: "/",
+  prefix: "/api/uploads",
 });
 await app.register(rateLimit, {
   max: 100,

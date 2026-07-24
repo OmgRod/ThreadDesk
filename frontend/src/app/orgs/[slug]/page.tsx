@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Globe, Users, Calendar, Heart, ExternalLink, Loader2 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, fixUploadUrl } from "@/lib/utils";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 
@@ -62,8 +62,8 @@ export default function OrgPage() {
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           <h2 className="text-2xl font-bold">Organization not found</h2>
           <p className="text-muted-foreground mt-2">The organization "{slug}" doesn't exist.</p>
-          <Button asChild className="mt-4">
-            <Link href="/">Go home</Link>
+          <Button className="mt-4" onClick={() => window.location.href = "/"}>
+            Go home
           </Button>
         </div>
       </div>
@@ -79,7 +79,7 @@ export default function OrgPage() {
           {/* Banner */}
           <div className="h-48 bg-gradient-to-r from-primary/80 to-primary relative">
             {org.banner && (
-              <img src={org.banner} alt="" className="w-full h-full object-cover" />
+              <img src={fixUploadUrl(org.banner)} alt="" className="w-full h-full object-cover" />
             )}
           </div>
 
@@ -88,7 +88,7 @@ export default function OrgPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 mb-6 -mt-16">
               <div className="w-32 h-32 bg-card rounded-xl shadow-md flex items-center justify-center text-4xl font-bold text-primary border-4 border-card overflow-hidden shrink-0">
                 {org.logo ? (
-                  <img src={org.logo} alt={org.name} className="w-full h-full object-cover" />
+                  <img src={fixUploadUrl(org.logo)} alt={org.name} className="w-full h-full object-cover" />
                 ) : (
                   org.name.charAt(0)
                 )}
@@ -167,7 +167,7 @@ export default function OrgPage() {
                   <div className="flex items-center justify-between text-sm text-muted-foreground font-medium pt-4 border-t">
                     <span className="flex items-center gap-2">
                       <div className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold overflow-hidden">
-                        {post.author?.avatar ? <img src={post.author.avatar} alt="" /> : post.author?.name?.charAt(0)}
+                        {post.author?.avatar ? <img src={fixUploadUrl(post.author.avatar)} alt="" /> : post.author?.name?.charAt(0)}
                       </div>
                       {post.author.name}
                     </span>
@@ -190,7 +190,7 @@ export default function OrgPage() {
                     className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted transition-colors group"
                   >
                     <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0 overflow-hidden">
-                      {member.avatar ? <img src={member.avatar} alt="" className="w-full h-full object-cover" /> : member.name.charAt(0)}
+                      {member.avatar ? <img src={fixUploadUrl(member.avatar)} alt="" className="w-full h-full object-cover" /> : member.name.charAt(0)}
                     </div>
                     <div className="overflow-hidden">
                       <p className="font-semibold truncate group-hover:text-primary transition-colors">{member.name}</p>
@@ -209,4 +209,4 @@ export default function OrgPage() {
       </div>
     </div>
   );
-}
+}

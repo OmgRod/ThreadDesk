@@ -5,6 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function fixUploadUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  if (url.startsWith("/api/")) return url;
+  if (url.startsWith("/uploads/")) return url.replace("/uploads/", "/api/uploads/uploads/");
+  return url;
+}
+
 export function formatDate(date: string | Date): string {
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",

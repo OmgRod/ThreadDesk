@@ -13,7 +13,8 @@
     "db:migrate": "cd backend && npm run db:migrate",
     "db:push": "cd backend && npm run db:push",
     "db:studio": "cd backend && npm run db:studio",
-    "lint:all": "cd frontend && npm run lint && cd ../backend && npm run lint"
+    "lint:all": "cd frontend && npm run lint && cd ../backend && npm run lint",
+    "start": "npm run build && concurrently \"cd backend && npm run start\" \"cd frontend && npm run start\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

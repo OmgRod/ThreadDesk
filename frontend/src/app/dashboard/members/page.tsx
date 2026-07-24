@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Users, Loader2, UserPlus, Trash2, Shield, Mail, X } from "lucide-react";
 import { toast } from "sonner";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 export default function MembersPage() {
   const { user, loading: authLoading } = useAuth();
@@ -17,6 +19,7 @@ export default function MembersPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("viewer");
   const [inviting, setInviting] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -37,7 +40,7 @@ export default function MembersPage() {
   useEffect(() => {
     if (!selectedOrgId) return;
     fetchMembersAndInvites();
-  }, [selectedOrgId]);
+  }, [selectedOrgId, fetchMembersAndInvites]);
 
   async function fetchMembersAndInvites() {
     const [membersRes, invitesRes] = await Promise.all([
@@ -70,18 +73,20 @@ export default function MembersPage() {
     setInviting(false);
   }
 
-  async function removeMember(memberId: string) {
-    if (!confirm("Remove this member?")) return;
-    const res = await fetch(`/api/orgs/${selectedOrgId}/members/${memberId}`, {
+  async function removeMember() {
+    if (memberToRemove === null) return;
+    const res = await fetch(`/api/orgs/${selectedOrgId}/members/${memberToRemove}`, {
       method: "DELETE",
       credentials: "include",
     });
     if (res.ok) {
       toast.success("Member removed.");
-      setMembers(members.filter((m) => m.id !== memberId));
+      setMembers(members.filter((m) => m.id !== memberToRemove));
+      setMemberToRemove(null);
     } else {
       const data = await res.json();
       toast.error(data.error || "Failed to remove member");
+      setMemberToRemove(null);
     }
   }
 
@@ -105,6 +110,13 @@ export default function MembersPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      <Modal isOpen={memberToRemove !== null} onClose={() => setMemberToRemove(null)} title="Remove Member">
+        <p className="text-muted-foreground mb-4">Are you sure you want to remove this member?</p>
+        <div className="flex gap-2 justify-end">
+          <Button variant="ghost" onClick={() => setMemberToRemove(null)}>Cancel</Button>
+          <Button variant="destructive" onClick={removeMember}>Remove</Button>
+        </div>
+      </Modal>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">Members</h1>
         {orgs.length > 0 && (
@@ -123,7 +135,7 @@ export default function MembersPage() {
       {orgs.length === 0 ? (
         <div className="text-center py-12 bg-background border rounded-xl text-muted-foreground">
           <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>You don't belong to any organizations yet.</p>
+          <p>You don&apos;t belong to any organizations yet.</p>
         </div>
       ) : (
         <>
@@ -202,8 +214,8 @@ export default function MembersPage() {
                       member.role === "editor" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
                       "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
                     }`}>{member.role}</span>
-                    {canManage && member.role !== "owner" && member.userId !== user.id && (
-                      <button onClick={() => removeMember(member.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors">
+                    {canManage && member.role !== "owner" && (user ? member.userId !== user.id : true) && (
+                      <button onClick={() => setMemberToRemove(member.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}

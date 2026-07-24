@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Building2, Mail, Lock, User, Loader2 } from "lucide-react";
@@ -16,11 +16,16 @@ function AuthForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLogin && !acceptedTerms) {
+      toast.error("You must accept the Terms of Service and Privacy Policy.");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -45,7 +50,7 @@ function AuthForm() {
       login(data.user || data);
       router.push("/dashboard");
     } catch (error) {
-      toast.error("Connection error");
+      toast.error(`Connection error: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -68,6 +73,7 @@ function AuthForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
+              <>
               <div>
                 <label className="block text-sm font-medium mb-1">Name</label>
                 <div className="relative">
@@ -82,6 +88,23 @@ function AuthForm() {
                   />
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  required
+                />
+                <label htmlFor="terms" className="text-sm text-gray-600 dark:text-gray-400">
+                  I accept the{" "}
+                  <Link href="/terms" className="text-primary-600 hover:underline">Terms of Service</Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" className="text-primary-600 hover:underline">Privacy Policy</Link>
+                </label>
+              </div>
+              </>
             )}
 
             <div>

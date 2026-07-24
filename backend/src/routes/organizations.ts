@@ -11,6 +11,12 @@ const createOrgSchema = z.object({
 });
 
 export async function organizationRoutes(app: FastifyInstance) {
+  // List all organizations
+  app.get("/", async (request, reply) => {
+    const orgs = await db.select().from(schema.organizations);
+    return orgs;
+  });
+
   // Create organization
   app.post("/", async (request, reply) => {
     const userId = request.cookies.session;
@@ -414,4 +420,4 @@ export async function organizationRoutes(app: FastifyInstance) {
     return orgs;
   });
 }
-
+

@@ -1,19 +1,35 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Heart, MessageSquare, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, MessageSquare, Send, Loader2, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { Modal } from "@/components/ui/modal";
+
+// Simple Twemoji mapper
+const twemoji = (text: string) => {
+  const emojis: Record<string, string> = {
+    "👍": "https://twemoji.maxcdn.com/v/14.0.2/72x72/1f44d.png",
+    "❤️": "https://twemoji.maxcdn.com/v/14.0.2/72x72/2764.png",
+    "😂": "https://twemoji.maxcdn.com/v/14.0.2/72x72/1f602.png",
+    "😮": "https://twemoji.maxcdn.com/v/14.0.2/72x72/1f62e.png",
+  };
+  return [...text].map((char, index) => emojis[char] ? <img key={index} src={emojis[char]} className="inline h-4 w-4 mx-0.5" alt={char} /> : char);
+};
 
 export default function PostPage() {
   const { slug, postId } = useParams();
+  const { user } = useAuth();
   const [post, setPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
-  const [reactions, setReactions] = useState<any>({ counts: {}, total: 0 });
+  const [reactions, setReactions] = useState<any>({ counts: {}, userReactions: [], total: 0 });
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
+  const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -24,7 +40,7 @@ export default function PostPage() {
       if (postData.id) {
         const [commentsRes, reactionsRes] = await Promise.all([
           fetch(`/api/comments/post/${postData.id}`),
-          fetch(`/api/reactions/post/${postData.id}`),
+          fetch(`/api/reactions/post/${postData.id}`, { credentials: "include" }),
         ]);
         setComments(await commentsRes.json());
         setReactions(await reactionsRes.json());
@@ -44,8 +60,21 @@ export default function PostPage() {
     });
     const data = await res.json();
     if (data.id || data.action === "removed") {
-      const reactionsRes = await fetch(`/api/reactions/post/${postId}`);
+      const reactionsRes = await fetch(`/api/reactions/post/${postId}`, { credentials: "include" });
       setReactions(await reactionsRes.json());
+    }
+  };
+
+  const deleteComment = async () => {
+    if (commentToDelete === null) return;
+    const res = await fetch(`/api/comments/${commentToDelete}`, { method: "DELETE", credentials: "include" });
+    if (res.ok) {
+      setComments(comments.filter(c => c.id !== commentToDelete));
+      toast.success("Comment deleted");
+      setCommentToDelete(null);
+    } else {
+      toast.error("Failed to delete comment");
+      setCommentToDelete(null);
     }
   };
 
@@ -71,108 +100,67 @@ export default function PostPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
-      </div>
-    );
-  }
-
-  if (!post) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold">Post not found</h2>
-          <Link href={`/orgs/${slug}`} className="text-primary-600 hover:underline mt-4 inline-block">
-            Back to organization
-          </Link>
-        </div>
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-muted/20">
+      <Modal isOpen={commentToDelete !== null} onClose={() => setCommentToDelete(null)} title="Delete Comment">
+        <p className="text-muted-foreground mb-4">Are you sure you want to delete this comment?</p>
+        <div className="flex gap-2 justify-end">
+          <Button variant="ghost" onClick={() => setCommentToDelete(null)}>Cancel</Button>
+          <Button variant="destructive" onClick={deleteComment}>Delete</Button>
+        </div>
+      </Modal>
+
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <Link
-          href={`/orgs/${slug}`}
-          className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to {post.organization.name}
+        <Link href={`/orgs/${slug}`} className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground mb-6">
+          <ArrowLeft className="h-4 w-4" /> Back to organization
         </Link>
 
-        {/* Post */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center text-primary-600 font-bold">
-              {post.author.name.charAt(0)}
-            </div>
-            <div>
-              <p className="font-medium">{post.author.name}</p>
-              <p className="text-sm text-gray-500">{formatDate(post.createdAt)}</p>
-            </div>
-          </div>
+        <div className="bg-card rounded-xl shadow-sm border p-6 mb-6">
+          <h1 className="text-2xl font-bold mb-4">{post?.title}</h1>
+          <p className="mb-6">{post?.content}</p>
 
-          <h1 className="text-2xl font-bold mb-4">{post.title}</h1>
-          <div className="prose dark:prose-invert max-w-none mb-6">
-            {post.content}
-          </div>
-
-          {/* Reactions */}
           <div className="flex items-center gap-2 mb-6">
-            {["like", "love", "laugh", "wow"].map((type) => (
-              <button
-                key={type}
-                onClick={() => addReaction(type)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm"
-              >
-                {type === "like" && "👍"}
-                {type === "love" && "❤️"}
-                {type === "laugh" && "😂"}
-                {type === "wow" && "😮"}
-                <span>{reactions.counts[type] || 0}</span>
-              </button>
-            ))}
+            {["like", "love", "laugh", "wow"].map((type) => {
+              const isActive = reactions.userReactions?.includes(type);
+              const emojiMap: Record<string, string> = { "like": "👍", "love": "❤️", "laugh": "😂", "wow": "😮" };
+              return (
+                <button
+                  key={type}
+                  onClick={() => addReaction(type)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                    isActive ? "bg-blue-100 border-blue-400 text-blue-700" : "border-border hover:bg-muted"
+                  }`}
+                >
+                  {twemoji(emojiMap[type])}
+                  <span>{reactions.counts?.[type] || 0}</span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Comment form */}
           <form onSubmit={submitComment} className="flex gap-2 mb-6">
-            <input
-              type="text"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Write a comment..."
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+            <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Write a comment..." className="flex-1 px-4 py-2 border rounded-lg bg-background" />
+            <Button type="submit"><Send className="h-4 w-4" /></Button>
           </form>
 
-          {/* Comments */}
           <div className="space-y-4">
-            {comments.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No comments yet</p>
-            ) : (
-              comments.map((comment: any) => (
-                <div key={comment.id} className="flex gap-3">
-                  <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                    {comment.user.name.charAt(0)}
-                  </div>
+            {comments?.map((comment: any) => (
+              <div key={comment.id} className="flex gap-3 justify-between">
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-sm shrink-0">{comment.user?.name?.charAt(0)}</div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{comment.user.name}</span>
-                      <span className="text-xs text-gray-500">{formatDate(comment.createdAt)}</span>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-300 mt-1">{comment.content}</p>
+                    <p className="font-medium text-sm">{comment.user?.name}</p>
+                    <p className="text-sm">{comment.content}</p>
                   </div>
                 </div>
-              ))
-            )}
+                {(user?.id === comment.user?.id || post?.organizationId === user?.id) && (
+                  <Button variant="ghost" size="icon" onClick={() => setCommentToDelete(comment.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>

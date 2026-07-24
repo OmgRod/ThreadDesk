@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, Loader2, RefreshCw } from "lucide-react";
-import { formatRelativeDate } from "@/lib/utils";
+import { RefreshCw } from "lucide-react";
+import { formatRelativeDate, fixUploadUrl } from "@/lib/utils";
+import { Navbar } from "@/components/layout/Navbar";
 
 export default function FeedPage() {
   const [user, setUser] = useState<any>(null);
@@ -44,26 +45,15 @@ export default function FeedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-primary-600" />
-            <span className="font-bold">ThreadDesk</span>
-          </Link>
-          <Link href="/dashboard" className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900">
-            Dashboard
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-muted/20">
+      <Navbar />
 
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 py-8 flex-1">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Your Feed</h1>
           <button
             onClick={() => loadFeed(1)}
-            className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700"
+            className="p-2 rounded-lg hover:bg-muted"
           >
             <RefreshCw className="h-5 w-5" />
           </button>
@@ -71,10 +61,10 @@ export default function FeedPage() {
 
         {posts.length === 0 && !loading ? (
           <div className="text-center py-16">
-            <p className="text-gray-500 mb-4">Follow some organizations to see their posts here.</p>
+            <p className="text-muted-foreground mb-4">Follow some organizations to see their posts here.</p>
             <Link
               href="/orgs"
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90"
             >
               Browse Organizations
             </Link>
@@ -85,21 +75,21 @@ export default function FeedPage() {
               <Link
                 key={post.id}
                 href={`/orgs/${post.organization.slug}/posts/${post.id}`}
-                className="block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
+                className="block bg-card rounded-xl shadow-sm border p-6 hover:border-primary transition-shadow"
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center text-primary-600 font-bold text-sm">
-                    {post.organization.name.charAt(0)}
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-sm overflow-hidden">
+                    {post.organization.logo ? <img src={fixUploadUrl(post.organization.logo)} alt="Logo" className="w-full h-full object-cover" /> : post.organization.name.charAt(0)}
                   </div>
                   <div>
                     <p className="font-medium text-sm">{post.organization.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {post.author.name} &middot; {formatRelativeDate(post.createdAt)}
                     </p>
                   </div>
                 </div>
                 <h3 className="font-semibold mb-2">{post.title}</h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3">
+                <p className="text-muted-foreground text-sm line-clamp-3">
                   {post.content}
                 </p>
               </Link>
@@ -110,7 +100,7 @@ export default function FeedPage() {
                 <button
                   onClick={() => loadFeed(page + 1)}
                   disabled={loading}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="px-4 py-2 border rounded-lg text-sm hover:bg-muted"
                 >
                   {loading ? "Loading..." : "Load More"}
                 </button>

@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { db, schema } from "../db/index.js";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
+import { WorkflowEngine } from "../services/workflowEngine.js";
 
 const createPostSchema = z.object({
   organizationId: z.number(),
@@ -48,6 +49,9 @@ export async function postRoutes(app: FastifyInstance) {
         scheduledDate: body.scheduledDate ? new Date(body.scheduledDate) : null,
       })
       .returning();
+
+    // Trigger workflows in the background
+    WorkflowEngine.trigger(body.organizationId, "new_post", post).catch(console.error);
 
     return reply.status(201).send(post);
   });

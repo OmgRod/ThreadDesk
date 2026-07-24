@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Building2, Mail, Loader2, Camera, Globe, Lock, Unlock, Upload } from "lucide-react";
+import { fixUploadUrl } from "@/lib/utils";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
@@ -65,11 +67,11 @@ export default function ProfilePage() {
       if (res.ok) {
         setAvatar(data.url);
       } else {
-        alert(data.error);
+        toast.error(data.error || "Failed to upload image");
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to upload image");
+      toast.error("Failed to upload image");
     } finally {
       setUploading(false);
     }
@@ -87,9 +89,10 @@ export default function ProfilePage() {
       const updated = await res.json();
       setUser(updated);
       setEditing(false);
+      toast.success("Profile updated!");
     } else {
       const err = await res.json();
-      alert(err.error || "Failed to update profile");
+      toast.error(err.error || "Failed to update profile");
     }
   };
 
@@ -124,7 +127,7 @@ export default function ProfilePage() {
             <div className="flex-shrink-0 flex flex-col items-center gap-4">
               <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-background bg-muted flex items-center justify-center text-4xl font-bold text-muted-foreground shadow-sm">
                 {avatar ? (
-                  <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={fixUploadUrl(avatar)} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
                   user?.name?.charAt(0)
                 )}
@@ -271,7 +274,7 @@ export default function ProfilePage() {
                   className="bg-card rounded-xl border p-4 flex items-center gap-3 hover:shadow-md transition-shadow"
                 >
                   <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary font-bold overflow-hidden">
-                    {org.logo ? <img src={org.logo} alt="Logo" className="w-full h-full object-cover" /> : org.name.charAt(0)}
+                    {org.logo ? <img src={fixUploadUrl(org.logo)} alt="Logo" className="w-full h-full object-cover" /> : org.name.charAt(0)}
                   </div>
                   <div>
                     <p className="font-medium">{org.name}</p>
@@ -287,4 +290,4 @@ export default function ProfilePage() {
       </div>
     </div>
   );
-}
+}
