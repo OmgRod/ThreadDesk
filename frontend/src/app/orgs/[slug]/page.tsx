@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Globe, Users, Calendar, Heart, ExternalLink, Loader2 } from "lucide-react";
+import { Globe, Users, Calendar, Heart, ExternalLink, Loader2, Rss } from "lucide-react";
 import { formatDate, fixUploadUrl } from "@/lib/utils";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
