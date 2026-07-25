@@ -14,7 +14,8 @@
     "db:push": "cd backend && npm run db:push",
     "db:studio": "cd backend && npm run db:studio",
     "lint:all": "cd frontend && npm run lint && cd ../backend && npm run lint",
-    "start": "npm run build && concurrently \"cd backend && npm run start\" \"cd frontend && npm run start\""
+    "start": "concurrently \"cd backend && npm run start\" \"cd frontend && npm run start\"",
+    "prod:update": "npm run build && npm start"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.20",
