@@ -50,11 +50,57 @@ export const WorkflowEngine = {
     }
   },
 
+  async executeSlackAction(action: any, payload: any) {
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+      const postLink = `${frontendUrl}/orgs/${payload.organizationId}/posts/${payload.id}`;
+      
+      await axios.post(action.config.webhookUrl, {
+        "blocks": [
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": `*<${postLink}|${payload.title}>*\n\n${payload.content}\n\n`
+            }
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "mrkdwn",
+                "text": "This post was automated using ThreadDesk."
+              }
+            ]
+          }
+        ]
+      }, {
+        headers: { "Content-Type": "application/json" }
+      });
+      console.log(`Slack webhook sent to ${action.config.webhookUrl}`);
+    } catch (error) {
+      console.error(`Failed to send Slack webhook to ${action.config.webhookUrl}:`, error);
+      throw error;
+    }
+  },
+
   async executeDiscordAction(action: any, payload: any) {
     try {
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
       await axios.post(action.config.webhookUrl, {
-        content: `## **${payload.title}**\n\n${payload.content}\n\n-# This post was automated using [ThreadDesk](${frontendUrl}).`,
+        "content": null,
+        "embeds": [
+          {
+            "title": payload.title,
+            "description": payload.content,
+            "url": `${frontendUrl}/orgs/${payload.organizationId}/posts/${payload.id}`,
+            "color": 5814783,
+            "footer": {
+              "text": "This post was automated using ThreadDesk."
+            }
+          }
+        ],
+        "attachments": []
       });
       console.log(`Discord webhook sent to ${action.config.webhookUrl}`);
     } catch (error) {

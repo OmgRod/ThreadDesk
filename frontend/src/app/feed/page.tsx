@@ -48,7 +48,7 @@ export default function FeedPage() {
     <div className="min-h-screen flex flex-col bg-muted/20">
       <Navbar />
 
-      <div className="px-4 py-8 flex-1">
+      <div className="flex-1 max-w-5xl mx-auto w-full p-6 space-y-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Your Feed</h1>
           <button

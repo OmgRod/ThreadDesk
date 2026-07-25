@@ -25,6 +25,8 @@ export const workflowWorker = new Worker(
       await WorkflowEngine.executeWebhookAction(action, payload);
     } else if (action.type === "discord") {
       await WorkflowEngine.executeDiscordAction(action, payload);
+    } else if (action.type === "slack") {
+      await WorkflowEngine.executeSlackAction(action, payload);
     }
   },
   { connection: redis }

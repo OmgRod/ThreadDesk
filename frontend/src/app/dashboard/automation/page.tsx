@@ -82,6 +82,16 @@ function ActionEditor({ action, onChange, onRemove }: { action: Action; onChange
         />
       )}
 
+      {action.type === "slack" && (
+        <input
+          type="url"
+          placeholder="Slack Webhook URL"
+          value={action.config.webhookUrl || ""}
+          onChange={(e) => onChange({ ...action, config: { ...action.config, webhookUrl: e.target.value } })}
+          className="w-full px-3 py-2 border rounded-lg bg-background text-sm"
+        />
+      )}
+
       {action.type === "http" && (
         <div className="space-y-2">
           <input
