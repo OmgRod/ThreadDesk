@@ -25,6 +25,7 @@ import { messageRoutes } from "./routes/messages.js";
 import { uploadRoutes } from "./routes/upload.js";
 import { rssRoutes } from "./routes/rss.js";
 import { userRoutes } from "./routes/users.js";
+import { scheduledQueue } from "./services/workflowQueue.js";
 
 const PORT = parseInt(process.env.PORT || "3002");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -83,6 +84,14 @@ app.get("/api/health", async () => {
 // Start server
 try {
   await app.listen({ port: PORT, host: HOST });
+  
+  // Add periodic task to poll for scheduled posts
+  await scheduledQueue.add("poll-scheduled", {}, {
+    repeat: {
+      every: 60000 // Poll every minute
+    }
+  });
+
   console.log(`Server running at http://localhost:${PORT}`);
 } catch (err) {
   app.log.error(err);

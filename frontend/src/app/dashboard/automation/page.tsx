@@ -19,11 +19,11 @@ const TRIGGER_OPTIONS = [
 ];
 
 const ACTION_TYPES = [
-  { value: "email", label: "Send Email", icon: Mail, color: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400", description: "Send post content via email to a list of recipients." },
+  { value: "email", label: "Send Email", icon: Mail, color: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400", description: "Send post content via email using your own SMTP server." },
   { value: "discord", label: "Discord Webhook", icon: MessageCircle, color: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400", description: "Post a message to a Discord channel via webhook." },
   { value: "http", label: "HTTP Webhook", icon: Webhook, color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400", description: "Send a JSON payload to any URL." },
-  { value: "rss", label: "RSS Feed", icon: Rss, color: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", description: "Update an RSS feed with the new post." },
   { value: "slack", label: "Slack", icon: MessageCircle, color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", description: "Post to a Slack channel." },
+  { value: "twitter", label: "Twitter (X)", icon: Webhook, color: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400", description: "Post to X." },
 ];
 
 interface Action {
@@ -55,20 +55,12 @@ function ActionEditor({ action, onChange, onRemove }: { action: Action; onChange
 
       {action.type === "email" && (
         <div className="space-y-2">
-          <input
-            type="text"
-            placeholder="To (comma-separated emails)"
-            value={action.config.to || ""}
-            onChange={(e) => onChange({ ...action, config: { ...action.config, to: e.target.value } })}
-            className="w-full px-3 py-2 border rounded-lg bg-background text-sm"
-          />
-          <input
-            type="text"
-            placeholder="Subject (optional — defaults to post title)"
-            value={action.config.subject || ""}
-            onChange={(e) => onChange({ ...action, config: { ...action.config, subject: e.target.value } })}
-            className="w-full px-3 py-2 border rounded-lg bg-background text-sm"
-          />
+          <input type="text" placeholder="SMTP Host" value={action.config.smtpHost || ""} onChange={(e) => onChange({ ...action, config: { ...action.config, smtpHost: e.target.value } })} className="w-full px-3 py-2 border rounded-lg bg-background text-sm" />
+          <input type="number" placeholder="SMTP Port" value={action.config.smtpPort || ""} onChange={(e) => onChange({ ...action, config: { ...action.config, smtpPort: e.target.value } })} className="w-full px-3 py-2 border rounded-lg bg-background text-sm" />
+          <input type="text" placeholder="SMTP Username" value={action.config.smtpUser || ""} onChange={(e) => onChange({ ...action, config: { ...action.config, smtpUser: e.target.value } })} className="w-full px-3 py-2 border rounded-lg bg-background text-sm" />
+          <input type="password" placeholder="SMTP Password" value={action.config.smtpPass || ""} onChange={(e) => onChange({ ...action, config: { ...action.config, smtpPass: e.target.value } })} className="w-full px-3 py-2 border rounded-lg bg-background text-sm" />
+          <input type="text" placeholder="From Email" value={action.config.fromEmail || ""} onChange={(e) => onChange({ ...action, config: { ...action.config, fromEmail: e.target.value } })} className="w-full px-3 py-2 border rounded-lg bg-background text-sm" />
+          <input type="text" placeholder="To (comma-separated)" value={action.config.to || ""} onChange={(e) => onChange({ ...action, config: { ...action.config, to: e.target.value } })} className="w-full px-3 py-2 border rounded-lg bg-background text-sm" />
         </div>
       )}
 
@@ -90,6 +82,17 @@ function ActionEditor({ action, onChange, onRemove }: { action: Action; onChange
           onChange={(e) => onChange({ ...action, config: { ...action.config, webhookUrl: e.target.value } })}
           className="w-full px-3 py-2 border rounded-lg bg-background text-sm"
         />
+      )}
+
+      {action.type === "twitter" && (
+        <div className="space-y-2">
+          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-700 dark:text-amber-400">
+            <strong>Note:</strong> Twitter integration is currently disabled as it requires a paid API subscription.
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            This will automatically tweet the post title and content.
+          </p>
+        </div>
       )}
 
       {action.type === "http" && (
@@ -314,13 +317,19 @@ export default function AutomationPage() {
             </select>
           )}
           {canManage && (
-            <button
-              onClick={() => { setShowCreate(true); setStep("trigger"); setForm({ name: "", trigger: "", actions: [] }); }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              New Workflow
-            </button>
+            <div className="flex gap-2">
+              <a href={`/api/rss/${selectedOrg?.slug}`} target="_blank" className="inline-flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted transition-colors">
+                <Rss className="h-4 w-4" />
+                RSS
+              </a>
+              <button
+                onClick={() => { setShowCreate(true); setStep("trigger"); setForm({ name: "", trigger: "", actions: [] }); }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                New Workflow
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -366,13 +375,22 @@ export default function AutomationPage() {
                     
                     {trigger.hasSchedule && form.trigger === trigger.value && (
                       <div className="mt-3 pt-3 border-t">
-                         <label className="text-xs font-medium">Schedule Time</label>
-                         <input 
-                           type="datetime-local" 
-                           className="w-full px-2 py-1 mt-1 border rounded text-xs"
-                           onChange={(e) => setForm(prev => ({...prev, config: {...prev.config, schedule: e.target.value}}))}
-                         />
-                         <Button size="sm" className="mt-2 text-xs" onClick={() => setStep("actions")}>Continue</Button>
+                        <label className="text-xs font-medium">Frequency</label>
+                        <select 
+                          className="w-full px-2 py-1 mt-1 border rounded text-xs"
+                          onChange={(e) => setForm(prev => ({...prev, config: {...prev.config, frequency: e.target.value}}))}
+                        >
+                          <option value="daily">Daily</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="monthly">Monthly</option>
+                        </select>
+                        <label className="text-xs font-medium mt-2 block">At Time</label>
+                        <input 
+                          type="time" 
+                          className="w-full px-2 py-1 mt-1 border rounded text-xs"
+                          onChange={(e) => setForm(prev => ({...prev, config: {...prev.config, time: e.target.value}}))}
+                        />
+                        <Button size="sm" className="mt-2 text-xs w-full" onClick={() => setStep("actions")}>Continue</Button>
                       </div>
                     )}
                   </button>

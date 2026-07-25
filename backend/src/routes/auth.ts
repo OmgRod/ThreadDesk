@@ -3,6 +3,8 @@ import bcrypt from "bcrypt";
 import { db, schema } from "../db/index.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import crypto from "crypto";
+import axios from "axios";
 
 const registerSchema = z.object({
   name: z.string().min(2).max(255),
@@ -149,5 +151,123 @@ export async function authRoutes(app: FastifyInstance) {
       isPublic: user.isPublic,
       emailPublic: user.emailPublic,
     };
+  });
+
+  // Twitter OAuth
+  app.get("/twitter", async (request, reply) => {
+    const userId = request.cookies.session;
+    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+
+    const codeVerifier = crypto.randomBytes(32).toString("hex");
+    const state = crypto.randomBytes(16).toString("hex");
+    
+    // Store verifier and state in session or temp cache, but for now simple approach:
+    reply.setCookie("twitter_verifier", codeVerifier, { path: "/", httpOnly: true });
+    reply.setCookie("twitter_state", state, { path: "/", httpOnly: true });
+
+    const codeChallenge = crypto.createHash("sha256").update(codeVerifier).digest("base64url");
+
+    const callbackUrl = process.env.TWITTER_CALLBACK_URL || "http://127.0.0.1:3000/api/auth/twitter/callback";
+
+    const authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${process.env.TWITTER_CLIENT_ID}&redirect_uri=${encodeURIComponent(callbackUrl)}&scope=tweet.read tweet.write users.read offline.access&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+    
+    return reply.redirect(authUrl);
+  });
+
+  app.get("/twitter/status", async (request, reply) => {
+    const userId = request.cookies.session;
+    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+
+    const [connection] = await db
+      .select({ username: schema.twitterConnections.twitterUsername })
+      .from(schema.twitterConnections)
+      .where(eq(schema.twitterConnections.userId, parseInt(userId)))
+      .limit(1);
+
+    return { connected: !!connection, username: connection?.username };
+  });
+
+  app.post("/twitter/disconnect", async (request, reply) => {
+    const userId = request.cookies.session;
+    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+
+    await db
+      .delete(schema.twitterConnections)
+      .where(eq(schema.twitterConnections.userId, parseInt(userId)));
+
+    return { success: true };
+  });
+
+  app.get("/twitter/callback", async (request, reply) => {
+    const userId = request.cookies.session;
+    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+
+    const { code, state } = request.query as { code: string; state: string };
+    const savedState = request.cookies.twitter_state;
+    const codeVerifier = request.cookies.twitter_verifier;
+
+    if (state !== savedState) return reply.status(400).send({ error: "Invalid state" });
+    
+    const callbackUrl = process.env.TWITTER_CALLBACK_URL || "http://127.0.0.1:3000/api/auth/twitter/callback";
+
+    // Exchange code for tokens
+    const tokenResponse = await axios.post("https://api.x.com/2/oauth2/token", new URLSearchParams({
+      code,
+      grant_type: "authorization_code",
+      redirect_uri: callbackUrl,
+      code_verifier: codeVerifier || "",
+    }), {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${Buffer.from(`${process.env.TWITTER_CLIENT_ID}:${process.env.TWITTER_CLIENT_SECRET}`).toString("base64")}`,
+      },
+    });
+
+    const { access_token, refresh_token, expires_in } = tokenResponse.data;
+
+    // Get Twitter User Info
+    const userResponse = await axios.get("https://api.x.com/2/users/me", {
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
+    const twitterUser = userResponse.data.data;
+
+    // Persist
+    await db.insert(schema.twitterConnections).values({
+      userId: parseInt(userId),
+      twitterUserId: twitterUser.id,
+      twitterUsername: twitterUser.username,
+      accessToken: access_token,
+      refreshToken: refresh_token,
+      expiresAt: new Date(Date.now() + expires_in * 1000),
+    });
+
+    reply.clearCookie("twitter_verifier");
+    reply.clearCookie("twitter_state");
+    
+    // Serve a simple HTML page to close the popup
+    return reply.type('text/html').send(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>Twitter Auth</title>
+        </head>
+        <body>
+          <p>Authentication successful, closing window...</p>
+          <script>
+            // Use localStorage to communicate success
+            localStorage.setItem('twitter_auth_success', Date.now().toString());
+            
+            // Try postMessage as primary, but don't depend on it for flow
+            if (window.opener) {
+              window.opener.postMessage({ type: 'TWITTER_AUTH_SUCCESS' }, '*');
+            }
+            
+            // Close immediately
+            window.close();
+          </script>
+        </body>
+      </html>
+    `);
   });
 }

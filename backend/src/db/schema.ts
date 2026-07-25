@@ -213,6 +213,35 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Twitter Connections
+export const twitterConnections = pgTable("twitter_connections", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  twitterUserId: varchar("twitter_user_id", { length: 255 }).notNull(),
+  twitterUsername: varchar("twitter_username", { length: 255 }).notNull(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// User SMTP Configs
+export const userSmtpConfigs = pgTable("user_smtp_configs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  host: varchar("host", { length: 255 }).notNull(),
+  port: integer("port").notNull(),
+  user: varchar("user", { length: 255 }).notNull(),
+  password: text("password").notNull(),
+  secure: boolean("secure").default(true).notNull(),
+  from: varchar("from", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Analytics Events
 export const analyticsEvents = pgTable("analytics_events", {
   id: serial("id").primaryKey(),
@@ -225,4 +254,25 @@ export const analyticsEvents = pgTable("analytics_events", {
   event: varchar("event", { length: 50 }).notNull(),
   metadata: text("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Post Attachments
+export const postAttachments = pgTable("post_attachments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id")
+    .notNull()
+    .references(() => posts.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // 'image' or 'video'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Post Publications
+export const postPublications = pgTable("post_publications", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id")
+    .notNull()
+    .references(() => posts.id, { onDelete: "cascade" }),
+  platform: varchar("platform", { length: 50 }).notNull(), // e.g., 'twitter', 'discord', 'slack'
+  publishedAt: timestamp("published_at").defaultNow().notNull(),
 });

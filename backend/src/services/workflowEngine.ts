@@ -2,9 +2,10 @@ import { db, schema } from "../db/index.js";
 import { eq, and } from "drizzle-orm";
 import axios from "axios";
 import { workflowQueue } from "./workflowQueue.js";
+import { TwitterService } from "./twitter.js";
 
 export const WorkflowEngine = {
-  async trigger(organizationId: number, triggerType: string, payload: any) {
+  async trigger(organizationId: number, triggerType: string, post: any) {
     // 1. Fetch active workflows for this org and trigger type
     const workflows = await db
       .select()
@@ -16,6 +17,14 @@ export const WorkflowEngine = {
           eq(schema.workflows.active, true)
         )
       );
+
+    // 2. Fetch attachments
+    const attachments = await db
+      .select()
+      .from(schema.postAttachments)
+      .where(eq(schema.postAttachments.postId, post.id));
+
+    const payload = { ...post, attachments: attachments.slice(0, 3) };
 
     for (const workflow of workflows) {
       try {
@@ -55,25 +64,35 @@ export const WorkflowEngine = {
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
       const postLink = `${frontendUrl}/orgs/${payload.organizationId}/posts/${payload.id}`;
       
-      await axios.post(action.config.webhookUrl, {
-        "blocks": [
-          {
-            "type": "section",
-            "text": {
-              "type": "mrkdwn",
-              "text": `*<${postLink}|${payload.title}>*\n\n${payload.content}\n\n`
-            }
-          },
-          {
-            "type": "context",
-            "elements": [
-              {
-                "type": "mrkdwn",
-                "text": "This post was automated using ThreadDesk."
-              }
-            ]
+      const blocks = [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": `*<${postLink}|${payload.title}>*\n\n${payload.content}\n\n`
           }
-        ]
+        },
+        {
+          "type": "context",
+          "elements": [
+            {
+              "type": "mrkdwn",
+              "text": "This post was automated using ThreadDesk."
+            }
+          ]
+        },
+        ...payload.attachments?.map((a: any) => ({
+          "type": "card",
+          "hero_image": {
+            "type": "image",
+            "image_url": a.url,
+            "alt_text": "Attachment"
+          }
+        })) || []
+      ];
+
+      await axios.post(action.config.webhookUrl, {
+        "blocks": blocks
       }, {
         headers: { "Content-Type": "application/json" }
       });
@@ -84,24 +103,80 @@ export const WorkflowEngine = {
     }
   },
 
+  async executeTwitterAction(action: any, payload: any) {
+    // Deduplication check
+    const [alreadyPublished] = await db
+      .select()
+      .from(schema.postPublications)
+      .where(and(eq(schema.postPublications.postId, payload.id), eq(schema.postPublications.platform, 'twitter')))
+      .limit(1);
+
+    if (alreadyPublished) {
+      console.log(`Post ${payload.id} already published to twitter, skipping.`);
+      return;
+    }
+
+    try {
+      const mediaUrls = payload.attachments?.map((a: any) => a.url) || [];
+      const tweetText = `${payload.title}\n\n${payload.content}`;
+      await TwitterService.postTweet(payload.authorId, tweetText, mediaUrls);
+      
+      // Record publication
+      await db.insert(schema.postPublications).values({
+        postId: payload.id,
+        platform: 'twitter',
+      });
+      
+      console.log(`Tweet posted for user ${payload.authorId}`);
+    } catch (error) {
+      console.error(`Failed to post tweet:`, error);
+      throw error;
+    }
+  },
+
   async executeDiscordAction(action: any, payload: any) {
+    // Deduplication check
+    const [alreadyPublished] = await db
+      .select()
+      .from(schema.postPublications)
+      .where(and(eq(schema.postPublications.postId, payload.id), eq(schema.postPublications.platform, 'discord')))
+      .limit(1);
+
+    if (alreadyPublished) {
+      console.log(`Post ${payload.id} already published to discord, skipping.`);
+      return;
+    }
+
     try {
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+      const embeds = [
+        {
+          "title": payload.title,
+          "description": payload.content,
+          "url": `${frontendUrl}/orgs/${payload.organizationId}/posts/${payload.id}`,
+          "color": 5814783,
+          "footer": {
+            "text": "This post was automated using ThreadDesk."
+          },
+          ...(payload.attachments?.[0] && { image: { url: payload.attachments[0].url } })
+        },
+        ...payload.attachments?.slice(1).map((a: any) => ({
+          "url": `${frontendUrl}/orgs/${payload.organizationId}/posts/${payload.id}`,
+          "image": { "url": a.url }
+        })) || []
+      ];
+
       await axios.post(action.config.webhookUrl, {
         "content": null,
-        "embeds": [
-          {
-            "title": payload.title,
-            "description": payload.content,
-            "url": `${frontendUrl}/orgs/${payload.organizationId}/posts/${payload.id}`,
-            "color": 5814783,
-            "footer": {
-              "text": "This post was automated using ThreadDesk."
-            }
-          }
-        ],
-        "attachments": []
+        "embeds": embeds,
       });
+
+      // Record publication
+      await db.insert(schema.postPublications).values({
+        postId: payload.id,
+        platform: 'discord',
+      });
+
       console.log(`Discord webhook sent to ${action.config.webhookUrl}`);
     } catch (error) {
       console.error(`Failed to send Discord webhook to ${action.config.webhookUrl}:`, error);

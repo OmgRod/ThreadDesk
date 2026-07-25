@@ -30,7 +30,7 @@ export default function FeedPage() {
 
   const loadFeed = async (p: number) => {
     setLoading(true);
-    const res = await fetch(`/api/feed?page=${p}&limit=20`, {
+    const res = await fetch(`/api/feed?page=${p}&limit=10`, {
       credentials: "include",
     });
     const data = await res.json();

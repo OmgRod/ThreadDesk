@@ -62,9 +62,11 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
               </div>
               
                 <div className="pb-2 w-full sm:w-auto">
-                  <Button className="w-full sm:w-auto rounded-full" onClick={() => window.location.href = `/messages?userId=${user.id}`}>
-                    <MessageSquare className="h-4 w-4" />
-                    Message
+                  <Button className="w-full sm:w-auto rounded-full" asChild>
+                    <Link href={`/messages?userId=${user.id}`}>
+                      <MessageSquare className="h-4 w-4" />
+                      Message
+                    </Link>
                   </Button>
                 </div>
             </div>

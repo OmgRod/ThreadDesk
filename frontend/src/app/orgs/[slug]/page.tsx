@@ -120,6 +120,14 @@ export default function OrgPage() {
               >
                 {following ? "Following" : "Follow"}
               </Button>
+              <a 
+                href={`/api/rss/${slug}`} 
+                target="_blank" 
+                className="flex items-center justify-center w-10 h-10 rounded-full border border-input bg-background hover:bg-muted transition-colors"
+                title="RSS Feed"
+              >
+                <Rss className="h-5 w-5 text-muted-foreground" />
+              </a>
             </div>
 
             {/* Description */}
