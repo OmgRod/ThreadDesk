@@ -27,9 +27,26 @@ export default function DashboardPage() {
   const [postOrgId, setPostOrgId] = useState("");
   const [postTitle, setPostTitle] = useState("");
   const [postContent, setPostContent] = useState("");
+  const [manualWorkflows, setManualWorkflows] = useState<any[]>([]);
+  const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const [overrideAutomation, setOverrideAutomation] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    async function fetchManualWorkflows() {
+      if (!postOrgId) {
+        setManualWorkflows([]);
+        return;
+      }
+      const res = await fetch(`/api/workflows/org/${postOrgId}`, { credentials: "include" });
+      if (res.ok) {
+        const allWorkflows = await res.json();
+        setManualWorkflows(allWorkflows.filter((wf: any) => wf.trigger === "manual" && wf.active));
+      }
+    }
+    fetchManualWorkflows();
+  }, [postOrgId]);
 
   useEffect(() => {
     async function load() {

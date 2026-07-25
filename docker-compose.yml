@@ -5,7 +5,7 @@ services:
     container_name: threaddesk-postgres
     environment:
       POSTGRES_USER: ${DB_USER:-threaddesk}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-threaddesk_prod_password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-threaddesk_dev}
       POSTGRES_DB: ${DB_NAME:-threaddesk}
     ports:
       - "${DB_PORT:-5439}:5432"
