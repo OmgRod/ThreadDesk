@@ -9,21 +9,23 @@ const nextConfig = {
     ],
   },
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
   async rewrites() {
+    // Strip trailing slashes or /api from environment variable if present
+    const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3002';
+    const baseUrl = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/:path*`,
+        destination: `${baseUrl}/api/:path*`,
       },
     ];
-  },
+  }
 };
 
 export default nextConfig;
