@@ -13,14 +13,14 @@ const plans = [
     name: "Free",
     price: "£0",
     description: "Perfect for getting started",
-    features: ["1 organisation", "50 posts/month", "Basic integrations"],
+    features: ["1 organisation", "50 posts/month", "Basic integrations", "Free Discord, Slack & Email automation"],
     variantId: null,
   },
   {
     name: "Starter",
     price: "£5",
     description: "For growing communities",
-    features: ["3 organisations", "1,000 posts/month", "Email sending", "Analytics"],
+    features: ["3 organisations", "1,000 posts/month", "Email sending", "Analytics", "Advanced automation"],
     variantId: process.env.NEXT_PUBLIC_LS_STARTER_VARIANT_ID,
   },
   {

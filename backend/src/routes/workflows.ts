@@ -24,6 +24,13 @@ export async function workflowRoutes(app: FastifyInstance) {
     }
 
     const body = workflowSchema.parse(request.body);
+    const actions = JSON.parse(body.actions);
+    const freeAllowedActions = ["discord", "slack", "email"];
+    const isFreeTier = actions.every((action: any) => freeAllowedActions.includes(action.type));
+
+    if (user.plan === "free" && !user.isAdmin && !isFreeTier) {
+      return reply.status(403).send({ error: "Advanced automation requires a Starter plan or higher" });
+    }
 
     // Check membership
     const [member] = await db
