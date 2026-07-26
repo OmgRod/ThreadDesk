@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { db, schema } from "../db/index.js";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
+import { getUserFromToken } from "../middleware/auth.js";
 
 const workflowSchema = z.object({
   organizationId: z.number().int(),
@@ -14,16 +15,11 @@ const workflowSchema = z.object({
 export async function workflowRoutes(app: FastifyInstance) {
   // Create workflow
   app.post("/", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, parseInt(userId)))
-      .limit(1);
-
-    if (!user || (user.plan === "free" && !user.isAdmin)) {
+    if (user.plan === "free" && !user.isAdmin) {
       return reply.status(403).send({ error: "Automation requires a Starter plan or higher" });
     }
 
@@ -36,7 +32,7 @@ export async function workflowRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(schema.organizationMembers.organizationId, body.organizationId),
-          eq(schema.organizationMembers.userId, parseInt(userId))
+          eq(schema.organizationMembers.userId, userId)
         )
       )
       .limit(1);
@@ -61,7 +57,28 @@ export async function workflowRoutes(app: FastifyInstance) {
 
   // Get workflows for organization
   app.get("/org/:orgId", async (request, reply) => {
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
+
     const { orgId } = request.params as { orgId: string };
+
+    // Check membership
+    const [member] = await db
+      .select()
+      .from(schema.organizationMembers)
+      .where(
+        and(
+          eq(schema.organizationMembers.organizationId, parseInt(orgId)),
+          eq(schema.organizationMembers.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!member) {
+      return reply.status(403).send({ error: "Not authorized" });
+    }
+
     const workflows = await db
       .select()
       .from(schema.workflows)
@@ -73,8 +90,36 @@ export async function workflowRoutes(app: FastifyInstance) {
 
   // Update workflow
   app.put("/:id", async (request, reply) => {
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
+
     const { id } = request.params as { id: string };
     const body = request.body as any;
+
+    const [workflow] = await db
+      .select()
+      .from(schema.workflows)
+      .where(eq(schema.workflows.id, ))
+      .limit(1);
+
+    if (!workflow) return reply.status(404).send({ error: "Workflow not found" });
+
+    // Check membership
+    const [member] = await db
+      .select()
+      .from(schema.organizationMembers)
+      .where(
+        and(
+          eq(schema.organizationMembers.organizationId, workflow.organizationId),
+          eq(schema.organizationMembers.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!member || !["owner", "admin", "editor"].includes(member.role)) {
+      return reply.status(403).send({ error: "Not authorized" });
+    }
 
     const [updated] = await db
       .update(schema.workflows)
@@ -86,7 +131,7 @@ export async function workflowRoutes(app: FastifyInstance) {
         active: body.active,
         updatedAt: new Date(),
       })
-      .where(eq(schema.workflows.id, parseInt(id)))
+      .where(eq(schema.workflows.id, ))
       .returning();
 
     return updated;
@@ -94,10 +139,39 @@ export async function workflowRoutes(app: FastifyInstance) {
 
   // Delete workflow
   app.delete("/:id", async (request, reply) => {
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
+
     const { id } = request.params as { id: string };
+
+    const [workflow] = await db
+      .select()
+      .from(schema.workflows)
+      .where(eq(schema.workflows.id, ))
+      .limit(1);
+
+    if (!workflow) return reply.status(404).send({ error: "Workflow not found" });
+
+    // Check membership
+    const [member] = await db
+      .select()
+      .from(schema.organizationMembers)
+      .where(
+        and(
+          eq(schema.organizationMembers.organizationId, workflow.organizationId),
+          eq(schema.organizationMembers.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!member || !["owner", "admin", "editor"].includes(member.role)) {
+      return reply.status(403).send({ error: "Not authorized" });
+    }
+
     await db
       .delete(schema.workflows)
-      .where(eq(schema.workflows.id, parseInt(id)));
+      .where(eq(schema.workflows.id, ));
 
     return { success: true };
   });

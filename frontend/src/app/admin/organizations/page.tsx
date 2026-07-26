@@ -1,36 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Trash2, Edit } from "lucide-react";
+import { Loader2, Trash2, Edit, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { formatDate } from "@/lib/utils";
 
 export default function AdminOrganizationsPage() {
   const { user, loading: authLoading } = useAuth();
   const [orgs, setOrgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingOrg, setEditingOrg] = useState<any | null>(null);
-  
-  // Edit states
   const [formData, setFormData] = useState<any>({});
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
   const router = useRouter();
+
+  const loadOrgs = useCallback(async (p: number, s: string) => {
+    setLoading(true);
+    const res = await fetch(`/api/admin/organizations?page=${p}&search=${encodeURIComponent(s)}`, { credentials: "include" });
+    if (res.ok) {
+      setOrgs(await res.json());
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && (!user || !user.isAdmin)) {
       router.push("/");
+    } else {
+        loadOrgs(page, search);
     }
-    async function loadOrgs() {
-      const res = await fetch("/api/admin/organizations", { credentials: "include" });
-      if (res.ok) {
-        setOrgs(await res.json());
-      }
-      setLoading(false);
-    }
-    loadOrgs();
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, page, search, loadOrgs]);
 
   const deleteOrg = async (id: number) => {
     if (!confirm("Are you sure?")) return;
@@ -70,11 +74,23 @@ export default function AdminOrganizationsPage() {
     }
   };
 
-  if (loading || authLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+  if (loading && orgs.length === 0) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Organization Management</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Organization Management</h1>
+        <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <input 
+                placeholder="Search orgs..." 
+                className="pl-8 p-2 border rounded-md" 
+                value={search}
+                onChange={(e) => {setSearch(e.target.value); setPage(1);}}
+            />
+        </div>
+      </div>
+
       <div className="bg-card rounded-xl border overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
@@ -99,6 +115,11 @@ export default function AdminOrganizationsPage() {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="flex justify-center gap-2">
+        <Button variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}><ChevronLeft className="h-4 w-4"/></Button>
+        <span className="p-2">Page {page}</span>
+        <Button variant="outline" onClick={() => setPage(page + 1)}><ChevronRight className="h-4 w-4"/></Button>
       </div>
 
       <Modal isOpen={!!editingOrg} onClose={() => setEditingOrg(null)} title="Edit Organization">

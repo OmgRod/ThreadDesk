@@ -1,13 +1,15 @@
 import { FastifyInstance } from "fastify";
 import { db, schema } from "../db/index.js";
 import { eq, and, desc, or } from "drizzle-orm";
+import { getUserFromToken } from "../middleware/auth.js";
 
 export async function messageRoutes(app: FastifyInstance) {
   // Get conversation list (latest message per user)
   app.get("/", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
-    const uid = parseInt(userId);
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const uid = user.id;
+
 
     // Get all messages involving the user, ordered by most recent
     const allMessages = await db
@@ -57,11 +59,11 @@ export async function messageRoutes(app: FastifyInstance) {
 
   // Get messages with a specific user
   app.get("/:userId", async (request, reply) => {
-    const sessionId = request.cookies.session;
-    if (!sessionId) return reply.status(401).send({ error: "Not authenticated" });
-    const uid = parseInt(sessionId);
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const uid = user.id;
     const { userId } = request.params as { userId: string };
-    const otherId = parseInt(userId);
+    const otherId = userId;
 
     const msgs = await db
       .select()
@@ -85,9 +87,10 @@ export async function messageRoutes(app: FastifyInstance) {
 
   // Send a message
   app.post("/", async (request, reply) => {
-    const sessionId = request.cookies.session;
-    if (!sessionId) return reply.status(401).send({ error: "Not authenticated" });
-    const uid = parseInt(sessionId);
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const uid = user.id;
+
     const { receiverId, content } = request.body as { receiverId: number; content: string };
 
     if (!receiverId || !content?.trim()) {
@@ -98,12 +101,7 @@ export async function messageRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "You cannot message yourself" });
     }
 
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, uid))
-      .limit(1);
-
+    // Reuse the 'user' object from the beginning of the handler
     if (!user) return reply.status(404).send({ error: "User not found" });
 
     // Monthly usage reset logic
@@ -151,9 +149,9 @@ export async function messageRoutes(app: FastifyInstance) {
 
   // Search users to message
   app.get("/search/:query", async (request, reply) => {
-    const sessionId = request.cookies.session;
-    if (!sessionId) return reply.status(401).send({ error: "Not authenticated" });
-    const uid = parseInt(sessionId);
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const uid = user.id;
     const { query } = request.params as { query: string };
 
     const users = await db

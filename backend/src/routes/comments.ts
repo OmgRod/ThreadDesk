@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { db, schema } from "../db/index.js";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
+import { getUserFromToken } from "../middleware/auth.js";
 
 const createCommentSchema = z.object({
   postId: z.number(),
@@ -10,18 +11,18 @@ const createCommentSchema = z.object({
 });
 
 export async function commentRoutes(app: FastifyInstance) {
-  // Create comment
-  app.post("/", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
-
+    // Create comment
+    app.post("/", async (request, reply) => {
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
     const body = createCommentSchema.parse(request.body);
 
     const [comment] = await db
       .insert(schema.comments)
       .values({
         postId: body.postId,
-        userId: parseInt(userId),
+        userId: userId,
         content: body.content,
         parentId: body.parentId || null,
       })
@@ -55,15 +56,16 @@ export async function commentRoutes(app: FastifyInstance) {
 
   // Delete comment
   app.delete("/:id", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { id } = request.params as { id: string };
 
     const [comment] = await db
       .select()
       .from(schema.comments)
-      .where(eq(schema.comments.id, parseInt(id)))
+      .where(eq(schema.comments.id, ))
       .limit(1);
 
     if (!comment) return reply.status(404).send({ error: "Comment not found" });
@@ -75,7 +77,7 @@ export async function commentRoutes(app: FastifyInstance) {
       .where(eq(schema.posts.id, comment.postId))
       .limit(1);
 
-    const isAuthor = comment.userId === parseInt(userId);
+    const isAuthor = comment.userId === userId;
     let isOrgAdmin = false;
 
     if (post) {
@@ -85,7 +87,7 @@ export async function commentRoutes(app: FastifyInstance) {
         .where(
           and(
             eq(schema.organizationMembers.organizationId, post.organizationId),
-            eq(schema.organizationMembers.userId, parseInt(userId))
+            eq(schema.organizationMembers.userId, userId)
           )
         )
         .limit(1);
@@ -98,7 +100,7 @@ export async function commentRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: "Not authorized" });
     }
 
-    await db.delete(schema.comments).where(eq(schema.comments.id, parseInt(id)));
+    await db.delete(schema.comments).where(eq(schema.comments.id, ));
 
     return { success: true };
   });

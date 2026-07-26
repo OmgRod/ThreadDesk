@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { db, schema } from "../db/index.js";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
+import { getUserFromToken } from "../middleware/auth.js";
 
 const reactionSchema = z.object({
   postId: z.number().optional(),
@@ -12,8 +13,9 @@ const reactionSchema = z.object({
 export async function reactionRoutes(app: FastifyInstance) {
   // Add reaction
   app.post("/", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const body = reactionSchema.parse(request.body);
 
@@ -27,7 +29,7 @@ export async function reactionRoutes(app: FastifyInstance) {
       .from(schema.reactions)
       .where(
         and(
-          eq(schema.reactions.userId, parseInt(userId)),
+          eq(schema.reactions.userId, userId),
           body.postId ? eq(schema.reactions.postId!, body.postId) : undefined,
           body.commentId ? eq(schema.reactions.commentId!, body.commentId) : undefined,
           eq(schema.reactions.type, body.type)
@@ -46,7 +48,7 @@ export async function reactionRoutes(app: FastifyInstance) {
     const [reaction] = await db
       .insert(schema.reactions)
       .values({
-        userId: parseInt(userId),
+        userId: userId,
         postId: body.postId || null,
         commentId: body.commentId || null,
         type: body.type,

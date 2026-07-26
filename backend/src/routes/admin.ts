@@ -1,27 +1,20 @@
 import { FastifyInstance } from "fastify";
 import { db, schema } from "../db/index.js";
 import { eq, desc, count, sql } from "drizzle-orm";
-
+import { getUserFromToken } from "../middleware/auth.js";
 export async function adminRoutes(app: FastifyInstance) {
   // Middleware to check admin status
   async function checkAdmin(request: any, reply: any) {
-    const userId = request.cookies.session;
-    if (!userId) {
-      return reply.status(401).send({ error: "Not authenticated" });
-    }
-
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, parseInt(userId)))
-      .limit(1);
+    const user = await getUserFromToken(request);
 
     if (!user || !user.isAdmin) {
       return reply.status(403).send({ error: "Not authorized" });
     }
+    return user;
   }
 
   // Get platform stats
+
   app.get("/stats", async (request, reply) => {
     await checkAdmin(request, reply);
 
@@ -73,6 +66,9 @@ export async function adminRoutes(app: FastifyInstance) {
   // Get all users
   app.get("/users", async (request, reply) => {
     await checkAdmin(request, reply);
+    const { page = 1, search = "" } = request.query as { page?: number; search?: string };
+    const limit = 20;
+    const offset = (page - 1) * limit;
 
     const users = await db
       .select({
@@ -80,10 +76,22 @@ export async function adminRoutes(app: FastifyInstance) {
         name: schema.users.name,
         email: schema.users.email,
         createdAt: schema.users.createdAt,
+        isAdmin: schema.users.isAdmin,
+        plan: schema.users.plan,
+        maxOrganizations: schema.users.maxOrganizations,
+        maxPostsPerMonth: schema.users.maxPostsPerMonth,
+        hasAnalytics: schema.users.hasAnalytics,
+        allowTeamMembers: schema.users.allowTeamMembers,
       })
       .from(schema.users)
+      .where(
+        search
+          ? sql`${schema.users.name} ILIKE ${`%${search}%`} OR ${schema.users.email} ILIKE ${`%${search}%`}`
+          : undefined
+      )
       .orderBy(desc(schema.users.createdAt))
-      .limit(100);
+      .limit(limit)
+      .offset(offset);
 
     return users;
   });
@@ -91,12 +99,21 @@ export async function adminRoutes(app: FastifyInstance) {
   // Get all organizations
   app.get("/organizations", async (request, reply) => {
     await checkAdmin(request, reply);
+    const { page = 1, search = "" } = request.query as { page?: number; search?: string };
+    const limit = 20;
+    const offset = (page - 1) * limit;
 
     const orgs = await db
       .select()
       .from(schema.organizations)
+      .where(
+        search
+          ? sql`${schema.organizations.name} ILIKE ${`%${search}%`} OR ${schema.organizations.slug} ILIKE ${`%${search}%`}`
+          : undefined
+      )
       .orderBy(desc(schema.organizations.createdAt))
-      .limit(100);
+      .limit(limit)
+      .offset(offset);
 
     return orgs;
   });
@@ -131,7 +148,7 @@ export async function adminRoutes(app: FastifyInstance) {
         hasAnalytics: hasAnalytics ?? false,
         allowTeamMembers: allowTeamMembers ?? false,
       })
-      .where(eq(schema.users.id, parseInt(id)));
+      .where(eq(schema.users.id, id));
 
     return { success: true };
   });
@@ -164,7 +181,7 @@ export async function adminRoutes(app: FastifyInstance) {
         hasAnalytics: hasAnalytics ?? false,
         allowTeamMembers: allowTeamMembers ?? false,
       })
-      .where(eq(schema.users.id, parseInt(id)));
+      .where(eq(schema.users.id, id));
 
     return { success: true };
   });
@@ -174,7 +191,7 @@ export async function adminRoutes(app: FastifyInstance) {
     await checkAdmin(request, reply);
 
     const { id } = request.params as { id: string };
-    await db.delete(schema.users).where(eq(schema.users.id, parseInt(id)));
+    await db.delete(schema.users).where(eq(schema.users.id, id));
     return { success: true };
   });
 
@@ -213,4 +230,4 @@ export async function adminRoutes(app: FastifyInstance) {
 
     return { success: true };
   });
-  }
+}

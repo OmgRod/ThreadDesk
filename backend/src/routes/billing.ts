@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import { schema } from "../db/index.js";
 import { eq } from "drizzle-orm";
 import axios from "axios";
+import { getUserFromToken } from "../middleware/auth.js";
 
 const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
 const LEMON_SQUEEZY_STORE_ID = process.env.LEMON_SQUEEZY_STORE_ID;
@@ -17,18 +18,14 @@ const VARIANTS = {
 export async function billingRoutes(app: FastifyInstance) {
   // Create a checkout session
   app.post("/checkout", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { variantId } = request.body as { variantId: string };
     if (!variantId) return reply.status(400).send({ error: "Variant ID is required" });
 
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, parseInt(userId)))
-      .limit(1);
-
+    // User is already fetched from middleware at the top
     if (!user) return reply.status(404).send({ error: "User not found" });
 
     try {
@@ -79,13 +76,14 @@ export async function billingRoutes(app: FastifyInstance) {
 
   // Get customer portal link
   app.get("/portal", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const [subscription] = await db
       .select()
       .from(schema.subscriptions)
-      .where(eq(schema.subscriptions.userId, parseInt(userId)))
+      .where(eq(schema.subscriptions.userId, userId))
       .limit(1);
 
     if (!subscription) {
@@ -113,27 +111,28 @@ export async function billingRoutes(app: FastifyInstance) {
 
   // Get current plan and subscription info
   app.get("/status", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
-    const [user] = await db
+    const [userDb] = await db
       .select({
         plan: schema.users.plan,
         postsSentThisMonth: schema.users.postsSentThisMonth,
       })
       .from(schema.users)
-      .where(eq(schema.users.id, parseInt(userId)))
+      .where(eq(schema.users.id, userId))
       .limit(1);
 
     const [subscription] = await db
       .select()
       .from(schema.subscriptions)
-      .where(eq(schema.subscriptions.userId, parseInt(userId)))
+      .where(eq(schema.subscriptions.userId, userId))
       .limit(1);
 
     return {
-      plan: user?.plan || "free",
-      postsSentThisMonth: user?.postsSentThisMonth || 0,
+      plan: userDb?.plan || "free",
+      postsSentThisMonth: userDb?.postsSentThisMonth || 0,
       subscription: subscription || null,
     };
   });

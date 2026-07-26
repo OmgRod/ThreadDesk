@@ -13,6 +13,7 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [search, setSearch] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -24,13 +25,13 @@ export default function FeedPage() {
           return;
         }
         setUser(data);
-        loadFeed(1);
+        loadFeed(1, search);
       });
-  }, [router]);
+  }, [router, search]);
 
-  const loadFeed = async (p: number) => {
+  const loadFeed = async (p: number, s: string) => {
     setLoading(true);
-    const res = await fetch(`/api/feed?page=${p}&limit=10`, {
+    const res = await fetch(`/api/feed?page=${p}&limit=10&search=${encodeURIComponent(s)}`, {
       credentials: "include",
     });
     const data = await res.json();
@@ -51,12 +52,20 @@ export default function FeedPage() {
       <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Your Feed</h1>
-          <button
-            onClick={() => loadFeed(1)}
-            className="p-2 rounded-lg hover:bg-muted"
-          >
-            <RefreshCw className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <input 
+                placeholder="Search posts..." 
+                className="p-2 border rounded-md text-sm" 
+                value={search}
+                onChange={(e) => {setSearch(e.target.value); setPage(1);}}
+            />
+            <button
+              onClick={() => loadFeed(1, search)}
+              className="p-2 rounded-lg hover:bg-muted"
+            >
+              <RefreshCw className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {posts.length === 0 && !loading ? (

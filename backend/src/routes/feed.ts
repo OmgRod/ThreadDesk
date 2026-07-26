@@ -1,22 +1,25 @@
 import { FastifyInstance } from "fastify";
 import { db, schema } from "../db/index.js";
-import { eq, desc, inArray } from "drizzle-orm";
+import { eq, desc, inArray, and, sql } from "drizzle-orm";
+import { getUserFromToken } from "../middleware/auth.js";
 
 export async function feedRoutes(app: FastifyInstance) {
   // Get feed
   app.get("/", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const page = parseInt((request.query as any).page || "1");
     const limit = parseInt((request.query as any).limit || "20");
+    const search = (request.query as any).search || "";
     const offset = (page - 1) * limit;
 
     // Get followed orgs
     const followed = await db
       .select()
       .from(schema.followers)
-      .where(eq(schema.followers.userId, parseInt(userId)));
+      .where(eq(schema.followers.userId, userId));
 
     if (followed.length === 0) {
       return { posts: [], hasMore: false, page };
@@ -49,8 +52,13 @@ export async function feedRoutes(app: FastifyInstance) {
       )
       .innerJoin(schema.users, eq(schema.posts.authorId, schema.users.id))
       .where(
-        inArray(schema.posts.organizationId, orgIds) &&
-          eq(schema.posts.published, true)
+        and(
+          inArray(schema.posts.organizationId, orgIds),
+          eq(schema.posts.published, true),
+          search
+            ? sql`${schema.posts.title} ILIKE ${`%${search}%`} OR ${schema.posts.content} ILIKE ${`%${search}%`} OR ${schema.organizations.name} ILIKE ${`%${search}%`}`
+            : undefined
+        )
       )
       .orderBy(desc(schema.posts.createdAt))
       .limit(limit)

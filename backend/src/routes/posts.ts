@@ -3,6 +3,7 @@ import { db, schema } from "../db/index.js";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
 import { WorkflowEngine } from "../services/workflowEngine.js";
+import { getUserFromToken } from "../middleware/auth.js";
 
 const createPostSchema = z.object({
   organizationId: z.number(),
@@ -17,8 +18,9 @@ const createPostSchema = z.object({
 export async function postRoutes(app: FastifyInstance) {
   // Create post
   app.post("/", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const body = createPostSchema.parse(request.body);
 
@@ -29,7 +31,7 @@ export async function postRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(schema.organizationMembers.organizationId, body.organizationId),
-          eq(schema.organizationMembers.userId, parseInt(userId))
+          eq(schema.organizationMembers.userId, userId)
         )
       )
       .limit(1);
@@ -42,7 +44,7 @@ export async function postRoutes(app: FastifyInstance) {
       .insert(schema.posts)
       .values({
         organizationId: body.organizationId,
-        authorId: parseInt(userId),
+        authorId: userId,
         title: body.title,
         content: body.content,
         visibility: body.visibility,
@@ -130,7 +132,7 @@ export async function postRoutes(app: FastifyInstance) {
         schema.organizations,
         eq(schema.posts.organizationId, schema.organizations.id)
       )
-      .where(eq(schema.posts.id, parseInt(id)))
+      .where(eq(schema.posts.id, id))
       .limit(1);
 
     if (!post) {
@@ -147,8 +149,9 @@ export async function postRoutes(app: FastifyInstance) {
 
   // Update post
   app.put("/:id", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { id } = request.params as { id: string };
     const body = request.body as any;
@@ -156,7 +159,7 @@ export async function postRoutes(app: FastifyInstance) {
     const [post] = await db
       .select()
       .from(schema.posts)
-      .where(eq(schema.posts.id, parseInt(id)))
+      .where(eq(schema.posts.id, id))
       .limit(1);
 
     if (!post) return reply.status(404).send({ error: "Post not found" });
@@ -167,7 +170,7 @@ export async function postRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(schema.organizationMembers.organizationId, post.organizationId),
-          eq(schema.organizationMembers.userId, parseInt(userId))
+          eq(schema.organizationMembers.userId, userId)
         )
       )
       .limit(1);
@@ -186,7 +189,7 @@ export async function postRoutes(app: FastifyInstance) {
         scheduledDate: body.scheduledDate ? new Date(body.scheduledDate) : null,
         updatedAt: new Date(),
       })
-      .where(eq(schema.posts.id, parseInt(id)))
+      .where(eq(schema.posts.id, id))
       .returning();
 
     return updated;
@@ -194,15 +197,16 @@ export async function postRoutes(app: FastifyInstance) {
 
   // Delete post
   app.delete("/:id", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { id } = request.params as { id: string };
 
     const [post] = await db
       .select()
       .from(schema.posts)
-      .where(eq(schema.posts.id, parseInt(id)))
+      .where(eq(schema.posts.id, id))
       .limit(1);
 
     if (!post) return reply.status(404).send({ error: "Post not found" });
@@ -213,7 +217,7 @@ export async function postRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(schema.organizationMembers.organizationId, post.organizationId),
-          eq(schema.organizationMembers.userId, parseInt(userId))
+          eq(schema.organizationMembers.userId, userId)
         )
       )
       .limit(1);
@@ -222,14 +226,15 @@ export async function postRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: "Not authorized" });
     }
 
-    await db.delete(schema.posts).where(eq(schema.posts.id, parseInt(id)));
+    await db.delete(schema.posts).where(eq(schema.posts.id, id));
     return { success: true };
   });
 
   // Get dashboard posts (all posts for user's orgs)
   app.get("/dashboard/all", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const posts = await db
       .select({
@@ -249,7 +254,7 @@ export async function postRoutes(app: FastifyInstance) {
         schema.organizationMembers,
         and(
           eq(schema.posts.organizationId, schema.organizationMembers.organizationId),
-          eq(schema.organizationMembers.userId, parseInt(userId))
+          eq(schema.organizationMembers.userId, userId)
         )
       )
       .innerJoin(

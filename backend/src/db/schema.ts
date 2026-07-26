@@ -11,7 +11,9 @@ import {
   pgEnum,
   uniqueIndex,
   index,
+  uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // Enums
 export const roleEnum = pgEnum("role", ["owner", "admin", "editor", "viewer"]);
@@ -28,7 +30,7 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "
 
 // Users
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
@@ -44,6 +46,7 @@ export const users = pgTable("users", {
   allowedIntegrations: text("allowed_integrations"), // JSON array of strings
   hasAnalytics: boolean("has_analytics").default(false).notNull(),
   allowTeamMembers: boolean("allow_team_members").default(false).notNull(),
+  lastReadChangelogVersion: varchar("last_read_changelog_version", { length: 50 }),
   postsSentThisMonth: integer("posts_sent_this_month").default(0).notNull(),
   lastPostReset: timestamp("last_post_reset").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -52,7 +55,7 @@ export const users = pgTable("users", {
 // Subscriptions
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   lemonSqueezyId: varchar("lemonsqueezy_id", { length: 255 }).notNull().unique(),
@@ -89,7 +92,7 @@ export const organizationMembers = pgTable(
     organizationId: integer("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: integer("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: roleEnum("role").notNull().default("viewer"),
@@ -110,7 +113,7 @@ export const posts = pgTable("posts", {
   organizationId: integer("organization_id")
     .notNull()
     .references(() => organizations.id, { onDelete: "cascade" }),
-  authorId: integer("author_id")
+  authorId: uuid("author_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: varchar("title", { length: 500 }).notNull(),
@@ -128,7 +131,7 @@ export const comments = pgTable("comments", {
   postId: integer("post_id")
     .notNull()
     .references(() => posts.id, { onDelete: "cascade" }),
-  userId: integer("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   parentId: integer("parent_id"),
@@ -141,7 +144,7 @@ export const reactions = pgTable(
   "reactions",
   {
     id: serial("id").primaryKey(),
-    userId: integer("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     postId: integer("post_id")
@@ -169,7 +172,7 @@ export const followers = pgTable(
     organizationId: integer("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: integer("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -185,7 +188,7 @@ export const followers = pgTable(
 // Notifications
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   type: varchar("type", { length: 50 }).notNull(),
@@ -232,10 +235,10 @@ export const organizationInvites = pgTable(
 // Direct Messages
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
-  senderId: integer("sender_id")
+  senderId: uuid("sender_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  receiverId: integer("receiver_id")
+  receiverId: uuid("receiver_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
@@ -246,7 +249,7 @@ export const messages = pgTable("messages", {
 // Twitter Connections
 export const twitterConnections = pgTable("twitter_connections", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   twitterUserId: varchar("twitter_user_id", { length: 255 }).notNull(),
@@ -260,7 +263,7 @@ export const twitterConnections = pgTable("twitter_connections", {
 // User SMTP Configs
 export const userSmtpConfigs = pgTable("user_smtp_configs", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   host: varchar("host", { length: 255 }).notNull(),

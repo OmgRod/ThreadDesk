@@ -2,12 +2,14 @@ import { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
 import { schema } from "../db/index.js";
 import { eq, and } from "drizzle-orm";
+import { getUserFromToken } from "../middleware/auth.js";
 
 export async function userRoutes(app: FastifyInstance) {
   // Get public user profile
   app.get("/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const requesterId = request.cookies.session ? parseInt(request.cookies.session) : null;
+    const userFromToken = await getUserFromToken(request);
+    const requesterId = userFromToken ? userFromToken.id : null;
 
     const [user] = await db
       .select({
@@ -21,7 +23,7 @@ export async function userRoutes(app: FastifyInstance) {
         emailPublic: schema.users.emailPublic,
       })
       .from(schema.users)
-      .where(eq(schema.users.id, parseInt(id)))
+      .where(eq(schema.users.id, id))
       .limit(1);
 
     if (!user) {
@@ -49,7 +51,7 @@ export async function userRoutes(app: FastifyInstance) {
       )
       .where(
         and(
-          eq(schema.organizationMembers.userId, parseInt(id)),
+          eq(schema.organizationMembers.userId, id),
           eq(schema.organizationMembers.isPublic, true)
         )
       );
@@ -62,8 +64,9 @@ export async function userRoutes(app: FastifyInstance) {
 
   // Update own profile
   app.put("/me", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const body = request.body as any;
 
@@ -77,7 +80,7 @@ export async function userRoutes(app: FastifyInstance) {
         isPublic: body.isPublic,
         emailPublic: body.emailPublic,
       })
-      .where(eq(schema.users.id, parseInt(userId)))
+      .where(eq(schema.users.id, userId))
       .returning({
         id: schema.users.id,
         name: schema.users.name,
@@ -94,11 +97,12 @@ export async function userRoutes(app: FastifyInstance) {
 
   // Delete own account
   app.delete("/me", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     // Delete user from db (cascades to posts, comments, etc)
-    await db.delete(schema.users).where(eq(schema.users.id, parseInt(userId)));
+    await db.delete(schema.users).where(eq(schema.users.id, userId));
 
     // Clear session cookie
     reply.clearCookie("session", { path: "/" });

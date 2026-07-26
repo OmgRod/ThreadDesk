@@ -4,13 +4,15 @@ import path from "path";
 import util from "util";
 import { pipeline } from "stream";
 import { randomUUID } from "crypto";
+import { getUserFromToken } from "../middleware/auth.js";
 
 const pump = util.promisify(pipeline);
 
 export async function uploadRoutes(app: FastifyInstance) {
   app.post("/", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const data = await request.file();
     if (!data) {

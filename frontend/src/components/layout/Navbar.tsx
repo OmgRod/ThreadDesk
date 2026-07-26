@@ -56,6 +56,9 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-2 sm:gap-4">
+          <Link href="/feed" className="text-sm font-medium hover:text-primary-600 transition-colors">
+            Feed
+          </Link>
           <Link href="/pricing" className="text-sm font-medium hover:text-primary-600 transition-colors">
             Pricing
           </Link>
@@ -111,6 +114,7 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <nav className="md:hidden border-t bg-background p-4 space-y-2">
+          <Link href="/feed" className="block p-2 text-sm font-medium">Feed</Link>
           <Link href="/pricing" className="block p-2 text-sm font-medium">Pricing</Link>
           {user?.isAdmin && <Link href="/admin" className="block p-2 text-sm font-medium text-primary">Admin</Link>}
           {user && (

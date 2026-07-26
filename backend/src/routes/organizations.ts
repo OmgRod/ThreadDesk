@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { db, schema } from "../db/index.js";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
+import { getUserFromToken } from "../middleware/auth.js";
 
 const createOrgSchema = z.object({
   name: z.string().min(2).max(255),
@@ -19,22 +20,15 @@ export async function organizationRoutes(app: FastifyInstance) {
 
   // Create organization
   app.post("/", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
-
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, parseInt(userId)))
-      .limit(1);
-
-    if (!user) return reply.status(404).send({ error: "User not found" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     // Check plan limits
     const existingOrgs = await db
       .select()
       .from(schema.organizationMembers)
-      .where(and(eq(schema.organizationMembers.userId, user.id), eq(schema.organizationMembers.role, "owner")));
+      .where(and(eq(schema.organizationMembers.userId, userId), eq(schema.organizationMembers.role, "owner")));
 
     const orgCount = existingOrgs.length;
     let limit = 1;
@@ -76,7 +70,7 @@ export async function organizationRoutes(app: FastifyInstance) {
     // Make creator the owner
     await db.insert(schema.organizationMembers).values({
       organizationId: org.id,
-      userId: parseInt(userId),
+      userId: userId,
       role: "owner",
     });
 
@@ -132,8 +126,9 @@ export async function organizationRoutes(app: FastifyInstance) {
 
   // Update organization
   app.put("/:id", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { id } = request.params as { id: string };
     const body = request.body as any;
@@ -144,7 +139,7 @@ export async function organizationRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(schema.organizationMembers.organizationId, parseInt(id)),
-          eq(schema.organizationMembers.userId, parseInt(userId))
+          eq(schema.organizationMembers.userId, userId)
         )
       )
       .limit(1);
@@ -170,8 +165,9 @@ export async function organizationRoutes(app: FastifyInstance) {
 
   // Delete organization
   app.delete("/:id", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { id } = request.params as { id: string };
 
@@ -182,7 +178,7 @@ export async function organizationRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(schema.organizationMembers.organizationId, parseInt(id)),
-          eq(schema.organizationMembers.userId, parseInt(userId)),
+          eq(schema.organizationMembers.userId, userId),
           eq(schema.organizationMembers.role, "owner")
         )
       )
@@ -224,8 +220,9 @@ export async function organizationRoutes(app: FastifyInstance) {
 
   // Remove member
   app.delete("/:id/members/:memberId", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { id, memberId } = request.params as { id: string; memberId: string };
 
@@ -235,7 +232,7 @@ export async function organizationRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(schema.organizationMembers.organizationId, parseInt(id)),
-          eq(schema.organizationMembers.userId, parseInt(userId))
+          eq(schema.organizationMembers.userId, userId)
         )
       )
       .limit(1);
@@ -255,19 +252,14 @@ export async function organizationRoutes(app: FastifyInstance) {
 
   // Send invite by email
   app.post("/:id/invites", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { id } = request.params as { id: string };
     const { email, role } = request.body as { email: string; role: string };
 
-    const [currentUser] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, parseInt(userId)))
-      .limit(1);
-
-    if (currentUser.email.toLowerCase() === email.toLowerCase()) {
+    if (user.email.toLowerCase() === email.toLowerCase()) {
       return reply.status(400).send({ error: "You cannot invite yourself" });
     }
 
@@ -278,7 +270,7 @@ export async function organizationRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(schema.organizationMembers.organizationId, parseInt(id)),
-          eq(schema.organizationMembers.userId, parseInt(userId))
+          eq(schema.organizationMembers.userId, userId)
         )
       )
       .limit(1);
@@ -332,8 +324,9 @@ export async function organizationRoutes(app: FastifyInstance) {
 
   // List pending invites for an org
   app.get("/:id/invites", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { id } = request.params as { id: string };
     const invites = await db
@@ -351,8 +344,9 @@ export async function organizationRoutes(app: FastifyInstance) {
 
   // Revoke an invite
   app.delete("/:id/invites/:inviteId", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { inviteId } = request.params as { id: string; inviteId: string };
     await db
@@ -364,8 +358,9 @@ export async function organizationRoutes(app: FastifyInstance) {
 
   // Accept an invite
   app.post("/invites/:inviteId/accept", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { inviteId } = request.params as { inviteId: string };
 
@@ -379,12 +374,6 @@ export async function organizationRoutes(app: FastifyInstance) {
     if (invite.status !== "pending") return reply.status(400).send({ error: "Invite already actioned" });
 
     // Verify email matches
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, parseInt(userId)))
-      .limit(1);
-
     if (user.email.toLowerCase() !== invite.email.toLowerCase()) {
       return reply.status(403).send({ error: "This invite is not for your account" });
     }
@@ -392,7 +381,7 @@ export async function organizationRoutes(app: FastifyInstance) {
     // Add to org
     await db.insert(schema.organizationMembers).values({
       organizationId: invite.organizationId,
-      userId: parseInt(userId),
+      userId: userId,
       role: invite.role,
     }).onConflictDoNothing();
 
@@ -408,7 +397,7 @@ export async function organizationRoutes(app: FastifyInstance) {
       .set({ read: true })
       .where(
         and(
-          eq(schema.notifications.userId, parseInt(userId)),
+          eq(schema.notifications.userId, userId),
           eq(schema.notifications.link, `/invites/${inviteId}`)
         )
       );
@@ -418,8 +407,9 @@ export async function organizationRoutes(app: FastifyInstance) {
 
   // Decline an invite
   app.post("/invites/:inviteId/decline", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { inviteId } = request.params as { inviteId: string };
 
@@ -433,8 +423,9 @@ export async function organizationRoutes(app: FastifyInstance) {
 
   // Toggle my visibility in organization
   app.put("/:id/members/me/visibility", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { id } = request.params as { id: string };
     const { isPublic } = request.body as { isPublic: boolean };
@@ -445,7 +436,7 @@ export async function organizationRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(schema.organizationMembers.organizationId, parseInt(id)),
-          eq(schema.organizationMembers.userId, parseInt(userId))
+          eq(schema.organizationMembers.userId, userId)
         )
       )
       .returning();
@@ -459,8 +450,9 @@ export async function organizationRoutes(app: FastifyInstance) {
 
   // Get user's organizations
   app.get("/user/mine", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const orgs = await db
       .select({
@@ -476,7 +468,7 @@ export async function organizationRoutes(app: FastifyInstance) {
         schema.organizations,
         eq(schema.organizationMembers.organizationId, schema.organizations.id)
       )
-      .where(eq(schema.organizationMembers.userId, parseInt(userId)));
+      .where(eq(schema.organizationMembers.userId, userId));
 
     return orgs;
   });

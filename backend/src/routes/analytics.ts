@@ -1,12 +1,14 @@
 import { FastifyInstance } from "fastify";
 import { db, schema } from "../db/index.js";
 import { eq, and, desc, sql, count } from "drizzle-orm";
+import { getUserFromToken } from "../middleware/auth.js";
 
 export async function analyticsRoutes(app: FastifyInstance) {
   // Track event
   app.post("/track", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const body = request.body as any;
     await db.insert(schema.analyticsEvents).values({
@@ -22,16 +24,10 @@ export async function analyticsRoutes(app: FastifyInstance) {
 
   // Get analytics for organization
   app.get("/org/:orgId", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
 
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, parseInt(userId)))
-      .limit(1);
-
-    if (!user || (user.plan === "free" && !user.isAdmin)) {
+    if (user.plan === "free" && !user.isAdmin) {
       return reply.status(403).send({ error: "Analytics requires a Starter plan or higher" });
     }
 
@@ -98,5 +94,5 @@ export async function analyticsRoutes(app: FastifyInstance) {
       totalReactions: reactions.length,
       totalFollowers: followers.length,
     };
-    });
-    }
+  });
+}

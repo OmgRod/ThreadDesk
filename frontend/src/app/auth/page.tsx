@@ -61,7 +61,7 @@ function AuthForm() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2">
-            <Building2 className="h-8 w-8 text-primary-600" />
+            <img src="/logo.png" alt="Logo" className="h-8 w-8" />
             <span className="text-xl font-bold">ThreadDesk</span>
           </Link>
         </div>

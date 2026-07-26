@@ -5,6 +5,10 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import crypto from "crypto";
 import axios from "axios";
+import jwt from "jsonwebtoken";
+import { getUserFromToken } from "../middleware/auth.js";
+
+const JWT_SECRET = process.env.JWT_SECRET || "super-secret-placeholder";
 
 const registerSchema = z.object({
   name: z.string().min(2).max(255),
@@ -19,7 +23,14 @@ const loginSchema = z.object({
 
 export async function authRoutes(app: FastifyInstance) {
   // Register
-  app.post("/register", async (request, reply) => {
+  app.post("/register", {
+      config: {
+          rateLimit: {
+              max: 1,
+              timeWindow: '1 minute'
+          }
+      }
+  }, async (request, reply) => {
     const body = registerSchema.parse(request.body);
     const existing = await db
       .select()
@@ -41,10 +52,13 @@ export async function authRoutes(app: FastifyInstance) {
       })
       .returning();
 
-    reply.setCookie("session", String(user.id), {
+    // Set JWT cookie
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    reply.setCookie("session", token, {
       path: "/",
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
       maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
@@ -54,6 +68,7 @@ export async function authRoutes(app: FastifyInstance) {
       email: user.email,
       avatar: user.avatar,
       plan: user.plan,
+      isAdmin: user.isAdmin,
     });
   });
 
@@ -75,11 +90,13 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(401).send({ error: "Invalid credentials" });
     }
 
-    // Set session cookie
-    reply.setCookie("session", String(user.id), {
+    // Set JWT cookie
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    reply.setCookie("session", token, {
       path: "/",
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
       maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
@@ -89,6 +106,7 @@ export async function authRoutes(app: FastifyInstance) {
       email: user.email,
       avatar: user.avatar,
       plan: user.plan,
+      isAdmin: user.isAdmin,
     };
   });
 
@@ -102,7 +120,7 @@ export async function authRoutes(app: FastifyInstance) {
     const [user] = await db
       .select()
       .from(schema.users)
-      .where(eq(schema.users.id, parseInt(userId)))
+      .where(eq(schema.users.id, userId))
       .limit(1);
 
     if (!user) return reply.status(401).send({ error: "User not found" });
@@ -115,7 +133,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
-    await db.update(schema.users).set({ passwordHash }).where(eq(schema.users.id, parseInt(userId)));
+    await db.update(schema.users).set({ passwordHash }).where(eq(schema.users.id, userId));
 
     return { success: true };
   });
@@ -128,19 +146,9 @@ export async function authRoutes(app: FastifyInstance) {
 
   // Get current user
   app.get("/me", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) {
-      return reply.status(401).send({ error: "Not authenticated" });
-    }
-
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, parseInt(userId)))
-      .limit(1);
-
+    const user = await getUserFromToken(request);
     if (!user) {
-      return reply.status(401).send({ error: "User not found" });
+      return reply.status(401).send({ error: "Not authenticated" });
     }
 
     return {
@@ -185,7 +193,7 @@ export async function authRoutes(app: FastifyInstance) {
     const [connection] = await db
       .select({ username: schema.twitterConnections.twitterUsername })
       .from(schema.twitterConnections)
-      .where(eq(schema.twitterConnections.userId, parseInt(userId)))
+      .where(eq(schema.twitterConnections.userId, userId))
       .limit(1);
 
     return { connected: !!connection, username: connection?.username };
@@ -197,7 +205,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     await db
       .delete(schema.twitterConnections)
-      .where(eq(schema.twitterConnections.userId, parseInt(userId)));
+      .where(eq(schema.twitterConnections.userId, userId));
 
     return { success: true };
   });
@@ -237,7 +245,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     // Persist
     await db.insert(schema.twitterConnections).values({
-      userId: parseInt(userId),
+      userId: userId,
       twitterUserId: twitterUser.id,
       twitterUsername: twitterUser.username,
       accessToken: access_token,

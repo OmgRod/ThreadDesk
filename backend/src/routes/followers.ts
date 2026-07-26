@@ -1,12 +1,14 @@
 import { FastifyInstance } from "fastify";
 import { db, schema } from "../db/index.js";
 import { eq, and } from "drizzle-orm";
+import { getUserFromToken } from "../middleware/auth.js";
 
 export async function followerRoutes(app: FastifyInstance) {
   // Follow organization
   app.post("/:orgId", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const { orgId } = request.params as { orgId: string };
 
@@ -16,7 +18,7 @@ export async function followerRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(schema.followers.organizationId, parseInt(orgId)),
-          eq(schema.followers.userId, parseInt(userId))
+          eq(schema.followers.userId, userId)
         )
       )
       .limit(1);
@@ -28,7 +30,7 @@ export async function followerRoutes(app: FastifyInstance) {
 
     await db.insert(schema.followers).values({
       organizationId: parseInt(orgId),
-      userId: parseInt(userId),
+      userId: userId,
     });
 
     return { following: true };
@@ -36,8 +38,9 @@ export async function followerRoutes(app: FastifyInstance) {
 
   // Check if following
   app.get("/:orgId/check", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return { following: false };
+    const user = await getUserFromToken(request);
+    if (!user) return { following: false };
+    const userId = user.id;
 
     const { orgId } = request.params as { orgId: string };
 
@@ -47,7 +50,7 @@ export async function followerRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(schema.followers.organizationId, parseInt(orgId)),
-          eq(schema.followers.userId, parseInt(userId))
+          eq(schema.followers.userId, userId)
         )
       )
       .limit(1);
@@ -57,8 +60,9 @@ export async function followerRoutes(app: FastifyInstance) {
 
   // Get followed organizations
   app.get("/my", async (request, reply) => {
-    const userId = request.cookies.session;
-    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+    const user = await getUserFromToken(request);
+    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    const userId = user.id;
 
     const orgs = await db
       .select({
@@ -73,7 +77,7 @@ export async function followerRoutes(app: FastifyInstance) {
         schema.organizations,
         eq(schema.followers.organizationId, schema.organizations.id)
       )
-      .where(eq(schema.followers.userId, parseInt(userId)));
+      .where(eq(schema.followers.userId, userId));
 
     return orgs;
   });

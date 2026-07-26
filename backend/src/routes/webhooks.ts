@@ -54,7 +54,7 @@ export async function webhookRoutes(app: FastifyInstance) {
       else if (variantId === process.env.LS_BUSINESS_VARIANT_ID) plan = "business";
 
       // Update user plan
-      await db.update(schema.users).set({ plan }).where(eq(schema.users.id, parseInt(userId)));
+      await db.update(schema.users).set({ plan }).where(eq(schema.users.id, userId));
 
       // Upsert subscription
       const [existingSub] = await db
@@ -64,7 +64,7 @@ export async function webhookRoutes(app: FastifyInstance) {
         .limit(1);
 
       const subData = {
-        userId: parseInt(userId),
+        userId: userId,
         lemonSqueezyId: subscriptionId,
         orderId: attributes.order_id?.toString(),
         variantId: variantId,
@@ -84,7 +84,7 @@ export async function webhookRoutes(app: FastifyInstance) {
       }
     } else if (eventName === "subscription_cancelled" || eventName === "subscription_expired") {
       // Reset user plan to free if subscription ends
-      await db.update(schema.users).set({ plan: "free" }).where(eq(schema.users.id, parseInt(userId)));
+      await db.update(schema.users).set({ plan: "free" }).where(eq(schema.users.id, userId));
 
       // Update subscription status
       await db
