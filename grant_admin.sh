@@ -24,8 +24,7 @@ echo "Using database container: $DB_CONTAINER"
 echo "Enter your ThreadDesk User ID to grant admin access:"
 read user_id
 
-# Run the SQL command using PGPASSWORD from the .env file
-export PGPASSWORD=$DB_PASSWORD
-docker exec -it $DB_CONTAINER psql -U "$DB_USER" -d "$DB_NAME" -c "UPDATE users SET is_admin = true WHERE id = $user_id;"
+# Run the SQL command using the default 'postgres' user
+docker exec -it $DB_CONTAINER psql -U postgres -d "$DB_NAME" -c "UPDATE users SET is_admin = true WHERE id = $user_id;"
 
 echo "Admin access granted to user $user_id."
