@@ -2,7 +2,7 @@
 
 # Parse DATABASE_URL from .env file
 # Expected format: postgres://user:password@host:port/dbname
-DB_URL=$(grep DATABASE_URL backend/.env.example | cut -d '=' -f2)
+DB_URL=$(grep DATABASE_URL backend/.env | cut -d '=' -f2)
 
 # Extract components using bash-specific feature
 # We will use 'bash' explicitly to interpret this.
