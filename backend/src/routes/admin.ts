@@ -126,7 +126,7 @@ export async function adminRoutes(app: FastifyInstance) {
         isAdmin,
         plan,
         maxOrganizations: maxOrganizations ?? null,
-        maxMessagesPerMonth: maxMessagesPerMonth ?? null,
+        maxPostsPerMonth: maxMessagesPerMonth ?? null,
         allowedIntegrations: allowedIntegrations ? JSON.stringify(allowedIntegrations) : null,
         hasAnalytics: hasAnalytics ?? false,
         allowTeamMembers: allowTeamMembers ?? false,
@@ -159,7 +159,7 @@ export async function adminRoutes(app: FastifyInstance) {
       .update(schema.users)
       .set({
         maxOrganizations: maxOrganizations ?? null,
-        maxMessagesPerMonth: maxMessagesPerMonth ?? null,
+        maxPostsPerMonth: maxMessagesPerMonth ?? null,
         allowedIntegrations: allowedIntegrations ? JSON.stringify(allowedIntegrations) : null,
         hasAnalytics: hasAnalytics ?? false,
         allowTeamMembers: allowTeamMembers ?? false,

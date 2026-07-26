@@ -3,7 +3,6 @@ dist/
 .next/
 .env.local
 *.log
-drizzle/
 .DS_Store
 data/
 backend/public/uploads/

@@ -119,7 +119,7 @@ export async function billingRoutes(app: FastifyInstance) {
     const [user] = await db
       .select({
         plan: schema.users.plan,
-        messagesSentThisMonth: schema.users.messagesSentThisMonth,
+        postsSentThisMonth: schema.users.postsSentThisMonth,
       })
       .from(schema.users)
       .where(eq(schema.users.id, parseInt(userId)))
@@ -133,7 +133,7 @@ export async function billingRoutes(app: FastifyInstance) {
 
     return {
       plan: user?.plan || "free",
-      messagesSentThisMonth: user?.messagesSentThisMonth || 0,
+      postsSentThisMonth: user?.postsSentThisMonth || 0,
       subscription: subscription || null,
     };
   });
