@@ -1,1 +1,0 @@
-ALTER TABLE "users" ADD COLUMN "last_read_changelog_version" varchar(50);
