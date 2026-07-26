@@ -6,7 +6,7 @@ export default function TermsPage() {
       <Navbar />
       <main className="max-w-3xl mx-auto px-4 py-12 prose dark:prose-invert">
         <h1>Terms of Service</h1>
-        <p>Last updated: July 24, 2026</p>
+        <p>Last updated: July 26, 2026</p>
         <p>By accessing or using ThreadDesk, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.</p>
 
         <h2>1. Service Description</h2>

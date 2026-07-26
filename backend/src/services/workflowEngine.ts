@@ -3,6 +3,18 @@ import { eq, and } from "drizzle-orm";
 import axios from "axios";
 import { workflowQueue } from "./workflowQueue.js";
 import { TwitterService } from "./twitter.js";
+import nodemailer from "nodemailer";
+
+// Setup transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT || "587"),
+  secure: process.env.SMTP_SECURE === "true",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 export const WorkflowEngine = {
   async trigger(organizationId: number, triggerType: string, post: any) {
@@ -82,12 +94,9 @@ export const WorkflowEngine = {
           ]
         },
         ...payload.attachments?.map((a: any) => ({
-          "type": "card",
-          "hero_image": {
-            "type": "image",
-            "image_url": a.url,
-            "alt_text": "Attachment"
-          }
+          "type": "image",
+          "image_url": a.url,
+          "alt_text": "Attachment"
         })) || []
       ];
 
@@ -99,6 +108,31 @@ export const WorkflowEngine = {
       console.log(`Slack webhook sent to ${action.config.webhookUrl}`);
     } catch (error) {
       console.error(`Failed to send Slack webhook to ${action.config.webhookUrl}:`, error);
+      throw error;
+    }
+  },
+
+  async executeEmailAction(action: any, payload: any) {
+    try {
+      const mailOptions = {
+        from: action.config.fromEmail,
+        to: action.config.to,
+        subject: payload.title,
+        text: payload.content,
+        html: `
+          <h1>${payload.title}</h1>
+          <p>${payload.content}</p>
+          ${payload.attachments?.map((a: any) => `<img src="${a.url}" alt="Attachment" style="max-width:100%;" />`).join('')}
+        `,
+        attachments: payload.attachments?.map((a: any) => ({
+          path: a.url
+        }))
+      };
+
+      await transporter.sendMail(mailOptions);
+      console.log(`Email sent to ${action.config.to}`);
+    } catch (error) {
+      console.error(`Failed to send email:`, error);
       throw error;
     }
   },

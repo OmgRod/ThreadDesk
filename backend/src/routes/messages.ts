@@ -98,10 +98,53 @@ export async function messageRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "You cannot message yourself" });
     }
 
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, uid))
+      .limit(1);
+
+    if (!user) return reply.status(404).send({ error: "User not found" });
+
+    // Monthly usage reset logic
+    const now = new Date();
+    const lastReset = new Date(user.lastPostReset);
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+
+    let postsSent = user.postsSentThisMonth;
+    if (lastReset < oneMonthAgo) {
+      postsSent = 0;
+      await db
+        .update(schema.users)
+        .set({ postsSentThisMonth: 0, lastPostReset: now })
+        .where(eq(schema.users.id, uid));
+    }
+
+    // Check plan limits
+    let limit = 50;
+    if (user.plan === "starter") limit = 1000;
+    else if (user.plan === "pro" || user.plan === "business") limit = Infinity;
+
+    // Use custom limit if set
+    const effectiveLimit = user.maxPostsPerMonth ?? limit;
+
+    if (postsSent >= effectiveLimit && !user.isAdmin) {
+      return reply.status(403).send({
+        error: "Post limit reached",
+        message: `Your current plan allows up to ${effectiveLimit} posts per month. Please upgrade for more.`,
+      });
+    }
+
     const [msg] = await db
       .insert(schema.messages)
       .values({ senderId: uid, receiverId, content: content.trim() })
       .returning();
+
+    // Increment post count
+    await db
+      .update(schema.users)
+      .set({ postsSentThisMonth: postsSent + 1 })
+      .where(eq(schema.users.id, uid));
 
     return reply.status(201).send(msg);
   });

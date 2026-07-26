@@ -25,7 +25,10 @@ import { messageRoutes } from "./routes/messages.js";
 import { uploadRoutes } from "./routes/upload.js";
 import { rssRoutes } from "./routes/rss.js";
 import { userRoutes } from "./routes/users.js";
+import { billingRoutes } from "./routes/billing.js";
 import { scheduledQueue } from "./services/workflowQueue.js";
+import { db, schema } from './db/index.js';
+import { eq } from "drizzle-orm";
 
 const PORT = parseInt(process.env.PORT || "3002");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -46,8 +49,17 @@ await app.register(cors, {
   credentials: true,
 });
 await app.register(cookie);
-await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
+await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 }, attachFieldsToBody: true });
 await app.register(formbody);
+// Add rawBody for webhook signature verification
+await app.register(async (app) => {
+    app.addHook('preValidation', async (request, reply) => {
+        // This is a simplified way to capture raw body for specific routes
+        if ((request as any).rawBody === undefined && request.body) {
+            (request as any).rawBody = JSON.stringify(request.body);
+        }
+    });
+});
 await app.register(fastifyStatic, {
   root: path.join(process.cwd(), "public"),
   prefix: "/api/uploads",
@@ -75,6 +87,7 @@ await app.register(messageRoutes, { prefix: "/api/messages" });
 await app.register(uploadRoutes, { prefix: "/api/upload" });
 await app.register(rssRoutes, { prefix: "/api/rss" });
 await app.register(userRoutes, { prefix: "/api/users" });
+await app.register(billingRoutes, { prefix: "/api/billing" });
 
 // Health check
 app.get("/api/health", async () => {
@@ -85,6 +98,13 @@ app.get("/api/health", async () => {
 try {
   await app.listen({ port: PORT, host: HOST });
   
+  // Set first user as admin if not already
+  const [firstUser] = await db.select().from(schema.users).where(eq(schema.users.id, 1)).limit(1);
+  if (firstUser && !firstUser.isAdmin) {
+    await db.update(schema.users).set({ isAdmin: true }).where(eq(schema.users.id, 1));
+    console.log("Admin privileges granted to user ID 1.");
+  }
+
   // Add periodic task to poll for scheduled posts
   await scheduledQueue.add("poll-scheduled", {}, {
     repeat: {

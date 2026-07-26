@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, List, Settings, Users, Zap, UserCog } from "lucide-react";
+import { Home, List, Settings, Users, Zap, UserCog, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/dashboard/posts", icon: List, label: "Posts" },
   { href: "/dashboard/members", icon: Users, label: "Members" },
   { href: "/dashboard/automation", icon: Zap, label: "Automation" },
+  { href: "/dashboard/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/dashboard/settings", icon: Settings, label: "Org Settings" },
   { href: "/dashboard/account", icon: UserCog, label: "Account" },
 ];

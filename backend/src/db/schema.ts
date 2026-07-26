@@ -23,6 +23,8 @@ export const visibilityEnum = pgEnum("visibility", [
 ]);
 export const reactionTypeEnum = pgEnum("reaction_type", ["like", "love", "laugh", "wow", "sad", "angry"]);
 export const inviteStatusEnum = pgEnum("invite_status", ["pending", "accepted", "declined"]);
+export const planEnum = pgEnum("plan", ["free", "starter", "pro", "business"]);
+export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "cancelled", "expired", "past_due", "on_trial", "unpaid"]);
 
 // Users
 export const users = pgTable("users", {
@@ -35,7 +37,35 @@ export const users = pgTable("users", {
   website: varchar("website", { length: 500 }),
   isPublic: boolean("is_public").default(true).notNull(),
   emailPublic: boolean("email_public").default(false).notNull(),
+  isAdmin: boolean("is_admin").default(false).notNull(),
+  plan: planEnum("plan").default("free").notNull(),
+  maxOrganizations: integer("max_organizations"),
+  maxPostsPerMonth: integer("max_posts_per_month"),
+  allowedIntegrations: text("allowed_integrations"), // JSON array of strings
+  hasAnalytics: boolean("has_analytics").default(false).notNull(),
+  allowTeamMembers: boolean("allow_team_members").default(false).notNull(),
+  postsSentThisMonth: integer("posts_sent_this_month").default(0).notNull(),
+  lastPostReset: timestamp("last_post_reset").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Subscriptions
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  lemonSqueezyId: varchar("lemonsqueezy_id", { length: 255 }).notNull().unique(),
+  orderId: varchar("order_id", { length: 255 }),
+  variantId: varchar("variant_id", { length: 255 }).notNull(),
+  productId: varchar("product_id", { length: 255 }).notNull(),
+  status: subscriptionStatusEnum("status").notNull(),
+  cardBrand: varchar("card_brand", { length: 255 }),
+  cardLastFour: varchar("card_last_four", { length: 4 }),
+  renewsAt: timestamp("renews_at"),
+  endsAt: timestamp("ends_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Organizations
@@ -252,7 +282,9 @@ export const analyticsEvents = pgTable("analytics_events", {
     onDelete: "set null",
   }),
   event: varchar("event", { length: 50 }).notNull(),
-  metadata: text("metadata"),
+  metadata: text("metadata"), // JSON string
+  userAgent: text("user_agent"),
+  ipAddress: varchar("ip_address", { length: 45 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

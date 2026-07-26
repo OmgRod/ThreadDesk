@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Settings2, Save, Upload, ImageIcon } from "lucide-react";
+import { Loader2, Settings2, Save, Upload, ImageIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { fixUploadUrl } from "@/lib/utils";
 
 export default function SettingsPage() {
@@ -14,6 +15,8 @@ export default function SettingsPage() {
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   
   // Upload states
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -117,6 +120,29 @@ export default function SettingsPage() {
     setSaving(false);
   };
 
+  const deleteOrganization = async () => {
+    setDeleting(true);
+    const res = await fetch(`/api/orgs/${selectedOrgId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    if (res.ok) {
+      toast.success("Organization deleted!");
+      setIsDeleteModalOpen(false);
+      setOrgs(orgs.filter(o => o.id.toString() !== selectedOrgId));
+      if (orgs.length > 1) {
+        setSelectedOrgId(orgs.find(o => o.id.toString() !== selectedOrgId)?.id.toString() || "");
+      } else {
+        setSelectedOrgId("");
+      }
+    } else {
+      const data = await res.json();
+      toast.error(data.error || "Failed to delete organization");
+    }
+    setDeleting(false);
+  };
+
   if (loading || authLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -127,6 +153,7 @@ export default function SettingsPage() {
 
   const selectedOrg = orgs.find((o) => o.id.toString() === selectedOrgId);
   const canEdit = selectedOrg?.role === "owner" || selectedOrg?.role === "admin";
+  const isOwner = selectedOrg?.role === "owner";
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -153,7 +180,7 @@ export default function SettingsPage() {
           <p>You don't belong to any organizations yet.</p>
         </div>
       ) : (
-        <div className="bg-background rounded-xl border p-6">
+        <div className="bg-background rounded-xl border p-6 space-y-6">
           <h2 className="text-lg font-semibold mb-6 pb-4 border-b">Organization Profile</h2>
           
           {!canEdit && (
@@ -273,8 +300,31 @@ export default function SettingsPage() {
               </div>
             )}
           </form>
+
+          {/* Delete Section */}
+          {isOwner && (
+            <div className="pt-8 mt-8 border-t border-destructive/20">
+              <h3 className="text-lg font-semibold text-destructive mb-4">Danger Zone</h3>
+              <p className="text-sm text-muted-foreground mb-4">Deleting this organization is permanent and cannot be undone.</p>
+              <Button variant="destructive" onClick={() => setIsDeleteModalOpen(true)}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Organization
+              </Button>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Delete Organization">
+        <p className="mb-6">Are you sure you want to permanently delete this organization? This action cannot be undone and will remove all associated data.</p>
+        <div className="flex justify-end gap-3">
+          <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
+          <Button variant="destructive" onClick={deleteOrganization} disabled={deleting}>
+            {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete Organization"}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -34,6 +34,8 @@ export const workflowWorker = new Worker(
       await WorkflowEngine.executeDiscordAction(action, payload);
     } else if (action.type === "slack") {
       await WorkflowEngine.executeSlackAction(action, payload);
+    } else if (action.type === "email") {
+      await WorkflowEngine.executeEmailAction(action, payload);
     } else if (action.type === "twitter") {
       await WorkflowEngine.executeTwitterAction(action, payload);
     }

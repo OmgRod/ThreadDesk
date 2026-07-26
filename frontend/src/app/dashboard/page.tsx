@@ -27,11 +27,32 @@ export default function DashboardPage() {
   const [postOrgId, setPostOrgId] = useState("");
   const [postTitle, setPostTitle] = useState("");
   const [postContent, setPostContent] = useState("");
+  const [attachments, setAttachments] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [manualWorkflows, setManualWorkflows] = useState<any[]>([]);
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
-  const [overrideAutomation, setOverrideAutomation] = useState(false);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const router = useRouter();
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const newUrls = [];
+    for (let i = 0; i < files.length; i++) {
+        const formData = new FormData();
+        formData.append("file", files[i]);
+        const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+            credentials: "include",
+        });
+        const data = await res.json();
+        if (res.ok) newUrls.push(data.url);
+    }
+    setAttachments([...attachments, ...newUrls]);
+    setUploading(false);
+  };
 
   useEffect(() => {
     async function fetchManualWorkflows() {
@@ -60,7 +81,17 @@ export default function DashboardPage() {
         fetch("/api/orgs/user/mine", { credentials: "include" }),
         fetch("/api/posts/dashboard/all", { credentials: "include" }),
       ]);
-      setOrgs(await orgsRes.json());
+      const orgsData = await orgsRes.json();
+      
+      // Fetch follower counts to sort
+      const sortedOrgs = await Promise.all(orgsData.map(async (org: any) => {
+          const res = await fetch(`/api/orgs/${org.slug}`);
+          const data = await res.json();
+          return { ...org, followerCount: data.followerCount || 0 };
+      }));
+      sortedOrgs.sort((a, b) => b.followerCount - a.followerCount);
+      
+      setOrgs(sortedOrgs);
       setPosts(await postsRes.json());
       setLoading(false);
     }
@@ -222,6 +253,15 @@ export default function DashboardPage() {
                 rows={4}
                 required
               />
+              
+              <div className="space-y-2">
+                <label className="font-medium text-sm">Attachments</label>
+                <Input type="file" multiple onChange={handleFileUpload} disabled={uploading} />
+                {uploading && <p className="text-xs">Uploading...</p>}
+                <div className="flex gap-2 flex-wrap">
+                    {attachments.map(url => <img key={url} src={url} className="w-16 h-16 object-cover rounded" />)}
+                </div>
+              </div>
               
               <div className="space-y-2 border p-3 rounded-lg">
                 <label className="font-medium text-sm">Trigger Manual Workflows</label>

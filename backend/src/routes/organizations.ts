@@ -22,6 +22,35 @@ export async function organizationRoutes(app: FastifyInstance) {
     const userId = request.cookies.session;
     if (!userId) return reply.status(401).send({ error: "Not authenticated" });
 
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, parseInt(userId)))
+      .limit(1);
+
+    if (!user) return reply.status(404).send({ error: "User not found" });
+
+    // Check plan limits
+    const existingOrgs = await db
+      .select()
+      .from(schema.organizationMembers)
+      .where(and(eq(schema.organizationMembers.userId, user.id), eq(schema.organizationMembers.role, "owner")));
+
+    const orgCount = existingOrgs.length;
+    let limit = 1;
+    if (user.plan === "starter") limit = 3;
+    else if (user.plan === "pro" || user.plan === "business") limit = Infinity;
+
+    // Use custom limit if set
+    const effectiveLimit = user.maxOrganizations ?? limit;
+
+    if (orgCount >= effectiveLimit && !user.isAdmin) {
+      return reply.status(403).send({
+        error: "Plan limit reached",
+        message: `Your current plan allows up to ${effectiveLimit} organization(s). Please upgrade to create more.`,
+      });
+    }
+
     const body = createOrgSchema.parse(request.body);
 
     const existing = await db
@@ -137,6 +166,37 @@ export async function organizationRoutes(app: FastifyInstance) {
       .returning();
 
     return org;
+  });
+
+  // Delete organization
+  app.delete("/:id", async (request, reply) => {
+    const userId = request.cookies.session;
+    if (!userId) return reply.status(401).send({ error: "Not authenticated" });
+
+    const { id } = request.params as { id: string };
+
+    // Check if user is owner
+    const [member] = await db
+      .select()
+      .from(schema.organizationMembers)
+      .where(
+        and(
+          eq(schema.organizationMembers.organizationId, parseInt(id)),
+          eq(schema.organizationMembers.userId, parseInt(userId)),
+          eq(schema.organizationMembers.role, "owner")
+        )
+      )
+      .limit(1);
+
+    if (!member) {
+      return reply.status(403).send({ error: "Only the owner can delete an organization" });
+    }
+
+    await db
+      .delete(schema.organizations)
+      .where(eq(schema.organizations.id, parseInt(id)));
+
+    return { success: true };
   });
 
   // Get organization members
@@ -407,6 +467,7 @@ export async function organizationRoutes(app: FastifyInstance) {
         id: schema.organizations.id,
         name: schema.organizations.name,
         slug: schema.organizations.slug,
+        description: schema.organizations.description,
         logo: schema.organizations.logo,
         role: schema.organizationMembers.role,
       })

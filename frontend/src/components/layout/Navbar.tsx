@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { Building2, LogOut, User as UserIcon, Menu, Bell, MessageSquare, LayoutDashboard } from "lucide-react";
+import { LogOut, User as UserIcon, Menu, Bell, MessageSquare, LayoutDashboard, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   DropdownMenu,
@@ -17,10 +17,12 @@ import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/theme-toggle";
 import { usePathname } from "next/navigation";
 import { fixUploadUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user, logout, loading } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -47,18 +49,26 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
             </Button>
           )}
           <Link href="/" className="flex items-center gap-2">
-            <Building2 className="h-7 w-7 text-primary" />
+            <img src="/logo.png" alt="Logo" className="h-7 w-7" />
             <span className="text-xl font-bold tracking-tight">ThreadDesk</span>
           </Link>
         </div>
 
-        <nav className="flex items-center gap-2 sm:gap-4">
+        {/* Desktop Nav */}
+        <nav className="hidden md:flex items-center gap-2 sm:gap-4">
+          <Link href="/pricing" className="text-sm font-medium hover:text-primary-600 transition-colors">
+            Pricing
+          </Link>
+          {user?.isAdmin && (
+             <Link href="/admin" className="text-sm font-medium text-primary hover:underline transition-colors">
+               Admin
+             </Link>
+          )}
           {!loading && user && (
             <>
-              {/* Dynamic Action Buttons based on path */}
               {pathname !== "/dashboard" && (
-                <Button variant="ghost" size="sm" className="hidden sm:flex" onClick={() => window.location.href = "/dashboard"}>
-                  <LayoutDashboard className="h-4 w-4" />
+                <Button variant="ghost" size="sm" onClick={() => window.location.href = "/dashboard"}>
+                  <LayoutDashboard className="h-4 w-4 mr-2" />
                   Dashboard
                 </Button>
               )}
@@ -79,51 +89,83 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void }) {
           )}
 
           <ModeToggle />
-
+          
           {!loading && (
-            user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger className="relative h-9 w-9 rounded-full border border-primary/20 flex items-center justify-center overflow-hidden hover:bg-accent hover:text-accent-foreground">
-                  {user.avatar ? (
-                    <img src={fixUploadUrl(user.avatar)} alt="avatar" className="rounded-full h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/10">
-                      <UserIcon className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{user.name}</p>
-                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => window.location.href = "/profile"}>
-                      Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600 focus:bg-red-50">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => window.location.href = "/auth"}>
-                  Log in
-                </Button>
-                <Button size="sm" onClick={() => window.location.href = "/auth?mode=signup"}>
-                  Sign up
-                </Button>
-              </div>
-            )
+             user ? (
+               <UserDropdown user={user} logout={logout} />
+             ) : (
+               <div className="flex gap-2">
+                 <Button variant="ghost" onClick={() => window.location.href = "/auth"}>Log in</Button>
+                 <Button size="sm" onClick={() => window.location.href = "/auth?mode=signup"}>Sign up</Button>
+               </div>
+             )
           )}
         </nav>
+
+        {/* Mobile Hamburger */}
+        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </Button>
       </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <nav className="md:hidden border-t bg-background p-4 space-y-2">
+          <Link href="/pricing" className="block p-2 text-sm font-medium">Pricing</Link>
+          {user?.isAdmin && <Link href="/admin" className="block p-2 text-sm font-medium text-primary">Admin</Link>}
+          {user && (
+            <>
+              <Link href="/dashboard" className="block p-2 text-sm font-medium">Dashboard</Link>
+              <Link href="/messages" className="block p-2 text-sm font-medium">Messages</Link>
+              <Link href="/notifications" className="block p-2 text-sm font-medium">Notifications</Link>
+              <Link href="/profile" className="block p-2 text-sm font-medium">Profile</Link>
+              <div className="flex items-center justify-between p-2">
+                 <span className="text-sm font-medium">Theme</span>
+                 <ModeToggle />
+              </div>
+              <Button variant="ghost" className="w-full justify-start text-red-600" onClick={logout}>Log out</Button>
+            </>
+          )}
+          {!user && (
+            <>
+              <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/auth"}>Log in</Button>
+              <Button className="w-full justify-start" onClick={() => window.location.href = "/auth?mode=signup"}>Sign up</Button>
+            </>
+          )}
+        </nav>
+      )}
     </header>
+  );
+}
+
+function UserDropdown({ user, logout }: { user: any, logout: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="relative h-9 w-9 rounded-full border border-primary/20 flex items-center justify-center overflow-hidden hover:bg-accent hover:text-accent-foreground">
+        {user.avatar ? (
+          <img src={fixUploadUrl(user.avatar)} alt="avatar" className="rounded-full h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/10">
+            <UserIcon className="h-4 w-4 text-primary" />
+          </div>
+        )}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">{user.name}</p>
+              <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => window.location.href = "/profile"}>Profile</DropdownMenuItem>
+          <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600 focus:bg-red-50">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Log out</span>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

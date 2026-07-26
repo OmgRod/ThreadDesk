@@ -37,6 +37,20 @@ export default function PostPage() {
       const postData = await postRes.json();
       setPost(postData);
 
+      // Track view
+      if (postData.id && postData.organizationId) {
+          fetch("/api/analytics/track", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                  organizationId: postData.organizationId,
+                  postId: postData.id,
+                  event: "view"
+              }),
+              credentials: "include"
+          }).catch(console.error);
+      }
+
       if (postData.id) {
         const [commentsRes, reactionsRes] = await Promise.all([
           fetch(`/api/comments/post/${postData.id}`),
@@ -121,6 +135,10 @@ export default function PostPage() {
         <div className="bg-card rounded-xl shadow-sm border p-6 mb-6">
           <h1 className="text-2xl font-bold mb-4">{post?.title}</h1>
           <p className="mb-6">{post?.content}</p>
+          
+          {post?.attachments?.map((a: any) => (
+             <img key={a.id} src={a.url} alt="Attachment" className="mb-4 rounded-lg" />
+          ))}
 
           <div className="flex items-center gap-2 mb-6">
             {["like", "love", "laugh", "wow"].map((type) => {

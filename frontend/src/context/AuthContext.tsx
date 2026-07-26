@@ -8,6 +8,8 @@ type User = {
   name: string;
   email: string;
   avatar?: string;
+  plan: "free" | "starter" | "pro" | "business";
+  isAdmin: boolean;
 };
 
 type AuthContextType = {

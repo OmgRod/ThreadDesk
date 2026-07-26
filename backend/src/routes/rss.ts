@@ -42,11 +42,22 @@ export async function rssRoutes(app: FastifyInstance) {
     });
 
     for (const post of posts) {
+      const attachments = await db
+        .select()
+        .from(schema.postAttachments)
+        .where(eq(schema.postAttachments.postId, post.id));
+
       feed.item({
         title: post.title,
         description: post.content.slice(0, 500) + (post.content.length > 500 ? "..." : ""),
         url: `${frontendUrl}/orgs/${slug}/posts/${post.id}`,
         date: post.createdAt,
+        ...(attachments[0] && {
+          enclosure: { url: attachments[0].url, type: "image/jpeg" },
+          custom_elements: [
+            { "media:content": { _attr: { url: attachments[0].url, medium: "image" } } }
+          ]
+        })
       });
     }
 

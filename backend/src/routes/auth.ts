@@ -53,6 +53,7 @@ export async function authRoutes(app: FastifyInstance) {
       name: user.name,
       email: user.email,
       avatar: user.avatar,
+      plan: user.plan,
     });
   });
 
@@ -87,6 +88,7 @@ export async function authRoutes(app: FastifyInstance) {
       name: user.name,
       email: user.email,
       avatar: user.avatar,
+      plan: user.plan,
     };
   });
 
@@ -150,6 +152,8 @@ export async function authRoutes(app: FastifyInstance) {
       website: user.website,
       isPublic: user.isPublic,
       emailPublic: user.emailPublic,
+      plan: user.plan,
+      isAdmin: user.isAdmin,
     };
   });
 

@@ -11,6 +11,7 @@ const createPostSchema = z.object({
   visibility: z.enum(["public", "followers", "members", "unlisted"]).default("public"),
   published: z.boolean().default(false),
   scheduledDate: z.string().optional(),
+  attachmentUrls: z.array(z.string()).optional(),
 });
 
 export async function postRoutes(app: FastifyInstance) {
@@ -49,6 +50,16 @@ export async function postRoutes(app: FastifyInstance) {
         scheduledDate: body.scheduledDate ? new Date(body.scheduledDate) : null,
       })
       .returning();
+
+    if (body.attachmentUrls && body.attachmentUrls.length > 0) {
+      await db.insert(schema.postAttachments).values(
+        body.attachmentUrls.map((url) => ({
+          postId: post.id,
+          url,
+          type: "image", // Assume images for now
+        }))
+      );
+    }
 
     // Trigger workflows in the background
     WorkflowEngine.trigger(body.organizationId, "new_post", post).catch(console.error);
@@ -126,7 +137,12 @@ export async function postRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: "Post not found" });
     }
 
-    return post;
+    const attachments = await db
+      .select()
+      .from(schema.postAttachments)
+      .where(eq(schema.postAttachments.postId, post.id));
+
+    return { ...post, attachments };
   });
 
   // Update post

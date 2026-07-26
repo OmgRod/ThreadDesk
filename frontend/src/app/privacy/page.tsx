@@ -6,7 +6,7 @@ export default function PrivacyPage() {
       <Navbar />
       <main className="max-w-3xl mx-auto px-4 py-12 prose dark:prose-invert">
         <h1>Privacy Policy</h1>
-        <p>Last updated: July 24, 2026</p>
+        <p>Last updated: July 26, 2026</p>
         <p>ThreadDesk ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and disclose information about you when you use our services.</p>
         
         <h2>1. Data We Collect</h2>
@@ -16,6 +16,7 @@ export default function PrivacyPage() {
           <li><strong>Profile Information:</strong> User names, avatars, and bios that you choose to provide.</li>
           <li><strong>Organization Data:</strong> Information required to manage organizations and teams.</li>
           <li><strong>Content:</strong> Posts, comments, and other content you create and distribute using our platform.</li>
+          <li><strong>Analytics Data:</strong> Usage data including events triggered, metadata, user agents, and IP addresses, collected to improve our service performance and features.</li>
         </ul>
 
         <h2>2. How We Use Data</h2>
@@ -24,6 +25,7 @@ export default function PrivacyPage() {
           <li>To provide, maintain, and improve our services.</li>
           <li>To facilitate communication and automation across integrated platforms.</li>
           <li>To secure your account and comply with legal obligations.</li>
+          <li>To analyze service usage trends and performance.</li>
         </ul>
 
         <h2>3. Data Protection and Sharing</h2>

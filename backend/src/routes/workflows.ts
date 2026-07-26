@@ -17,6 +17,16 @@ export async function workflowRoutes(app: FastifyInstance) {
     const userId = request.cookies.session;
     if (!userId) return reply.status(401).send({ error: "Not authenticated" });
 
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, parseInt(userId)))
+      .limit(1);
+
+    if (!user || (user.plan === "free" && !user.isAdmin)) {
+      return reply.status(403).send({ error: "Automation requires a Starter plan or higher" });
+    }
+
     const body = workflowSchema.parse(request.body);
 
     // Check membership
