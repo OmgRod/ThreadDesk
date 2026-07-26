@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, ArrowRight } from "lucide-react";
+import { Building2, ArrowRight, CheckCircle2 } from "lucide-react";
 import { OptimizedImage } from "../ui/optimized-image";
 
 interface OrgCardProps {
@@ -10,6 +10,7 @@ interface OrgCardProps {
     logo?: string;
     description?: string;
     role?: string;
+    verified?: boolean;
   };
 }
 
@@ -27,7 +28,12 @@ export function OrgCard({ org }: OrgCardProps) {
             <Building2 className="h-6 w-6" />
           )}
         </div>
-        <h2 className="font-semibold text-lg truncate flex-1">{org.name}</h2>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-semibold text-lg truncate flex items-center gap-1">
+            {org.name}
+            {org.verified && <CheckCircle2 className="h-4 w-4 text-blue-500" />}
+          </h2>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground line-clamp-2 flex-1">{org.description || "No description provided."}</p>
       {org.role && <p className="text-xs text-muted-foreground mt-2 capitalize">{org.role}</p>}
