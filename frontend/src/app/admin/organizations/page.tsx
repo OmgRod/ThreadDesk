@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, Trash2, Edit, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { formatDate } from "@/lib/utils";
 
 export default function AdminOrganizationsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -16,25 +15,43 @@ export default function AdminOrganizationsPage() {
   const [editingOrg, setEditingOrg] = useState<any | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+  const [searchType, setSearchType] = useState<"name" | "slug">("name");
+  
   const router = useRouter();
+  const debouncedTimeout = useRef<NodeJS.Timeout>();
 
-  const loadOrgs = useCallback(async (p: number, s: string) => {
+  const loadOrgs = useCallback(async (p: number, s: string, type: string) => {
     setLoading(true);
-    const res = await fetch(`/api/admin/organizations?page=${p}&search=${encodeURIComponent(s)}`, { credentials: "include" });
+    const res = await fetch(`/api/admin/organizations?page=${p}&search=${encodeURIComponent(s)}&searchType=${type}`, { credentials: "include" });
     if (res.ok) {
       setOrgs(await res.json());
     }
     setLoading(false);
   }, []);
 
+  // Debouncing effect
+  useEffect(() => {
+    if (debouncedTimeout.current) clearTimeout(debouncedTimeout.current);
+    
+    debouncedTimeout.current = setTimeout(() => {
+        setActiveSearch(searchQuery);
+        setPage(1);
+    }, 500);
+
+    return () => clearTimeout(debouncedTimeout.current);
+  }, [searchQuery]);
+
   useEffect(() => {
     if (!authLoading && (!user || !user.isAdmin)) {
       router.push("/");
     } else {
-        loadOrgs(page, search);
+        loadOrgs(page, activeSearch, searchType);
     }
-  }, [user, authLoading, router, page, search, loadOrgs]);
+  }, [user, authLoading, router, page, activeSearch, searchType, loadOrgs]);
 
   const deleteOrg = async (id: number) => {
     if (!confirm("Are you sure?")) return;
@@ -74,22 +91,34 @@ export default function AdminOrganizationsPage() {
     }
   };
 
-  if (loading && orgs.length === 0) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+  if (authLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Organization Management</h1>
-        <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input 
-                placeholder="Search orgs..." 
-                className="pl-8 p-2 border rounded-md" 
-                value={search}
-                onChange={(e) => {setSearch(e.target.value); setPage(1);}}
-            />
+        <div className="flex gap-2">
+            <select 
+                className="p-2 border rounded-md text-sm"
+                value={searchType}
+                onChange={(e) => setSearchType(e.target.value as "name" | "slug")}
+            >
+                <option value="name">Name</option>
+                <option value="slug">Slug</option>
+            </select>
+            <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <input 
+                    placeholder="Search orgs..." 
+                    className="pl-8 p-2 border rounded-md" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </div>
         </div>
       </div>
+
+      {loading && <div className="flex justify-center p-4"><Loader2 className="animate-spin h-6 w-6 text-primary" /></div>}
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <table className="w-full text-sm">

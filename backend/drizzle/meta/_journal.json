@@ -8,6 +8,13 @@
       "when": 1785114758442,
       "tag": "0000_peaceful_romulus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785174508976,
+      "tag": "0001_salty_proudstar",
+      "breakpoints": true
     }
   ]
 }

@@ -245,6 +245,19 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+
+// Bluesky Connections
+export const blueskyConnections = pgTable("bluesky_connections", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  blueskyDid: varchar("bluesky_did", { length: 255 }).notNull(),
+  blueskyHandle: varchar("bluesky_handle", { length: 255 }).notNull(),
+  session: text("session").notNull(), // Store serialized session
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Twitter Connections
 export const twitterConnections = pgTable("twitter_connections", {
   id: serial("id").primaryKey(),

@@ -2,7 +2,7 @@
 
 import {
   Loader2, Zap, Plus, Trash2, Mail, MessageCircle, Webhook,
-  Rss, ChevronDown, ChevronUp, Pause, Check, ArrowRight
+  Rss, ChevronDown, ChevronUp, Pause, Check, ArrowRight, Edit
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -24,6 +24,7 @@ const ACTION_TYPES = [
   { value: "http", label: "HTTP Webhook", icon: Webhook, color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400", description: "Send a JSON payload to any URL." },
   { value: "slack", label: "Slack", icon: MessageCircle, color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", description: "Post to a Slack channel." },
   { value: "twitter", label: "Twitter (X)", icon: Webhook, color: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400", description: "Post to X." },
+  { value: "bluesky", label: "Bluesky", icon: Webhook, color: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400", description: "Post to Bluesky." },
 ];
 
 interface Action {
@@ -40,6 +41,8 @@ interface WorkflowForm {
 function ActionEditor({ action, onChange, onRemove }: { action: Action; onChange: (a: Action) => void; onRemove: () => void }) {
   const def = ACTION_TYPES.find((a) => a.value === action.type)!;
   const Icon = def?.icon ?? Webhook;
+  const [handle, setHandle] = useState("");
+  const [pass, setPass] = useState("");
 
   return (
     <div className="border rounded-xl p-4 space-y-3 bg-muted/20">
@@ -95,6 +98,33 @@ function ActionEditor({ action, onChange, onRemove }: { action: Action; onChange
         </div>
       )}
 
+      {action.type === "bluesky" && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground mt-2">
+            Connect your Bluesky account to automate posts.
+          </p>
+          <div className="flex gap-2">
+            <input 
+              type="text" 
+              placeholder="Handle" 
+              className="px-3 py-2 border rounded-lg bg-background text-sm flex-1"
+              onChange={(e) => setHandle(e.target.value)}
+            />
+            <input 
+              type="password" 
+              placeholder="Password" 
+              className="px-3 py-2 border rounded-lg bg-background text-sm flex-1"
+              onChange={(e) => setPass(e.target.value)}
+            />
+            <Button size="sm" onClick={async () => {
+              const res = await fetch("/api/bluesky/connect", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({handle, password: pass}), credentials: "include" });
+              if (res.ok) toast.success("Bluesky connected!");
+              else toast.error("Failed to connect");
+            }}>Connect</Button>
+          </div>
+        </div>
+      )}
+
       {action.type === "http" && (
         <div className="space-y-2">
           <input
@@ -125,7 +155,7 @@ function ActionEditor({ action, onChange, onRemove }: { action: Action; onChange
   );
 }
 
-function WorkflowCard({ workflow, onToggle, onDelete }: { workflow: any; onToggle: () => void; onDelete: () => void }) {
+function WorkflowCard({ workflow, onToggle, onDelete, onEdit }: { workflow: any; onToggle: () => void; onDelete: () => void; onEdit: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const actions: Action[] = JSON.parse(workflow.actions || "[]");
   const triggerDef = TRIGGER_OPTIONS.find((t) => t.value === workflow.trigger);
@@ -157,6 +187,9 @@ function WorkflowCard({ workflow, onToggle, onDelete }: { workflow: any; onToggl
           </button>
           <button onClick={() => setExpanded(!expanded)} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          <button onClick={onEdit} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+            <Edit className="h-4 w-4" />
           </button>
           <button onClick={onDelete} className="p-2 text-red-400 hover:text-red-600 transition-colors">
             <Trash2 className="h-4 w-4" />
@@ -195,6 +228,7 @@ export default function AutomationPage() {
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [editingWorkflow, setEditingWorkflow] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<"trigger" | "actions" | "name">("trigger");
   const [form, setForm] = useState<WorkflowForm>({ name: "", trigger: "", actions: [] });
@@ -232,28 +266,43 @@ export default function AutomationPage() {
       return;
     }
     setSaving(true);
-    const res = await fetch("/api/workflows", {
-      method: "POST",
+    const url = editingWorkflow ? `/api/workflows/${editingWorkflow.id}` : "/api/workflows";
+    const method = editingWorkflow ? "PUT" : "POST";
+    const res = await fetch(url, {
+      method: method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         organizationId: parseInt(selectedOrgId),
         name: form.name,
         trigger: form.trigger,
         actions: JSON.stringify(form.actions),
+        active: editingWorkflow ? editingWorkflow.active : true
       }),
       credentials: "include",
     });
     if (res.ok) {
-      toast.success("Automation workflow created!");
+      toast.success(editingWorkflow ? "Automation workflow updated!" : "Automation workflow created!");
       setShowCreate(false);
+      setEditingWorkflow(null);
       setForm({ name: "", trigger: "", actions: [] });
       setStep("trigger");
       fetchWorkflows();
     } else {
       const data = await res.json();
-      toast.error(data.error || "Failed to create workflow");
+      toast.error(data.error || "Failed to save workflow");
     }
     setSaving(false);
+  }
+
+  function editWorkflow(workflow: any) {
+    setEditingWorkflow(workflow);
+    setForm({
+      name: workflow.name,
+      trigger: workflow.trigger,
+      actions: JSON.parse(workflow.actions),
+    });
+    setStep("trigger");
+    setShowCreate(true);
   }
 
   async function toggleWorkflow(workflow: any) {
@@ -525,6 +574,7 @@ export default function AutomationPage() {
               workflow={workflow}
               onToggle={() => toggleWorkflow(workflow)}
               onDelete={() => setWorkflowToDelete(workflow.id)}
+              onEdit={() => editWorkflow(workflow)}
             />
           ))}
         </div>

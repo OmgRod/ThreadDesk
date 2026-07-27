@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import axios from "axios";
 import { workflowQueue } from "./workflowQueue.js";
 import { TwitterService } from "./twitter.js";
+import { createBlueskyPost } from "./bluesky.js";
 import nodemailer from "nodemailer";
 
 // Setup transporter
@@ -215,6 +216,36 @@ export const WorkflowEngine = {
     } catch (error) {
       console.error(`Failed to send Discord webhook to ${action.config.webhookUrl}:`, error);
       throw error; // Re-throw to trigger bullmq retry
+    }
+  },
+
+  async executeBlueskyAction(action: any, payload: any) {
+    // Deduplication check
+    const [alreadyPublished] = await db
+      .select()
+      .from(schema.postPublications)
+      .where(and(eq(schema.postPublications.postId, payload.id), eq(schema.postPublications.platform, 'bluesky')))
+      .limit(1);
+
+    if (alreadyPublished) {
+      console.log(`Post ${payload.id} already published to bluesky, skipping.`);
+      return;
+    }
+
+    try {
+      const postText = `${payload.title}\n\n${payload.content}\n\nThis post was automated using ThreadDesk.`;
+      await createBlueskyPost(payload.authorId, postText);
+      
+      // Record publication
+      await db.insert(schema.postPublications).values({
+        postId: payload.id,
+        platform: 'bluesky',
+      });
+      
+      console.log(`Bluesky post created for user ${payload.authorId}`);
+    } catch (error) {
+      console.error(`Failed to create Bluesky post:`, error);
+      throw error;
     }
   },
 };

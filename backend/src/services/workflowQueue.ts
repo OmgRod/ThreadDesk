@@ -38,6 +38,8 @@ export const workflowWorker = new Worker(
       await WorkflowEngine.executeEmailAction(action, payload);
     } else if (action.type === "twitter") {
       await WorkflowEngine.executeTwitterAction(action, payload);
+    } else if (action.type === "bluesky") {
+      await WorkflowEngine.executeBlueskyAction(action, payload);
     }
   },
   { connection: redis }

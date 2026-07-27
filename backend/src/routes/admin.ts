@@ -106,18 +106,23 @@ export async function adminRoutes(app: FastifyInstance) {
   // Get all organizations
   app.get("/organizations", async (request, reply) => {
     await checkAdmin(request, reply);
-    const { page = 1, search = "" } = request.query as { page?: number; search?: string };
+    const { page = 1, search = "", searchType = "name" } = request.query as { page?: number; search?: string; searchType?: "name" | "slug" };
     const limit = 20;
     const offset = (page - 1) * limit;
+
+    let whereClause = undefined;
+    if (search) {
+        if (searchType === "slug") {
+            whereClause = eq(schema.organizations.slug, search);
+        } else {
+            whereClause = sql`${schema.organizations.name} ILIKE ${`%${search}%`}`;
+        }
+    }
 
     const orgs = await db
       .select()
       .from(schema.organizations)
-      .where(
-        search
-          ? sql`${schema.organizations.name} ILIKE ${`%${search}%`} OR ${schema.organizations.slug} ILIKE ${`%${search}%`}`
-          : undefined
-      )
+      .where(whereClause)
       .orderBy(desc(schema.organizations.createdAt))
       .limit(limit)
       .offset(offset);

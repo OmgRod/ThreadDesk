@@ -17,8 +17,8 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
   
   // Search state
-  const [searchQuery, setSearchQuery] = useState(""); // Input value
-  const [activeSearch, setActiveSearch] = useState(""); // Actual query sent to API
+  const [searchQuery, setSearchQuery] = useState(""); 
+  const [activeSearch, setActiveSearch] = useState("");
   const [searchType, setSearchType] = useState<"id" | "email" | "name">("name");
   
   const router = useRouter();
@@ -95,7 +95,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (authLoading || (loading && users.length === 0)) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+  if (authLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
 
   return (
     <div className="space-y-6">
@@ -123,6 +123,8 @@ export default function AdminUsersPage() {
         </div>
       </div>
       
+      {loading && <div className="flex justify-center p-4"><Loader2 className="animate-spin h-6 w-6 text-primary" /></div>}
+
       <div className="bg-card rounded-xl border overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
@@ -156,29 +158,29 @@ export default function AdminUsersPage() {
 
       <Modal isOpen={!!editingUser} onClose={() => setEditingUser(null)} title="Edit User & Plan">
         <div className="space-y-4">
-          <div><label className="block text-sm font-medium">Name</label><input className="w-full p-2 border rounded" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium">Email</label><input className="w-full p-2 border rounded" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} /></div>
+          <div><label className="block text-sm font-medium">Name</label><input className="w-full p-2 border rounded" value={formData.name || ""} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
+          <div><label className="block text-sm font-medium">Email</label><input className="w-full p-2 border rounded" value={formData.email || ""} onChange={e => setFormData({...formData, email: e.target.value})} /></div>
           <div>
             <label className="block text-sm font-medium">Plan</label>
-            <select className="w-full p-2 border rounded" value={formData.plan} onChange={e => setFormData({...formData, plan: e.target.value})}>
+            <select className="w-full p-2 border rounded" value={formData.plan || "free"} onChange={e => setFormData({...formData, plan: e.target.value})}>
                 <option value="free">Free</option>
                 <option value="starter">Starter</option>
                 <option value="pro">Pro</option>
                 <option value="business">Business</option>
             </select>
           </div>
-          <div><label className="block text-sm font-medium">Max Orgs</label><input type="number" className="w-full p-2 border rounded" value={formData.maxOrganizations} onChange={e => setFormData({...formData, maxOrganizations: parseInt(e.target.value)})} /></div>
-          <div><label className="block text-sm font-medium">Max Posts</label><input type="number" className="w-full p-2 border rounded" value={formData.maxPostsPerMonth} onChange={e => setFormData({...formData, maxPostsPerMonth: parseInt(e.target.value)})} /></div>
+          <div><label className="block text-sm font-medium">Max Orgs</label><input type="number" className="w-full p-2 border rounded" value={formData.maxOrganizations || ""} onChange={e => setFormData({...formData, maxOrganizations: parseInt(e.target.value)})} /></div>
+          <div><label className="block text-sm font-medium">Max Posts</label><input type="number" className="w-full p-2 border rounded" value={formData.maxPostsPerMonth || ""} onChange={e => setFormData({...formData, maxPostsPerMonth: parseInt(e.target.value)})} /></div>
           <div className="flex items-center gap-2">
-            <input type="checkbox" checked={formData.isAdmin} onChange={e => setFormData({...formData, isAdmin: e.target.checked})} />
+            <input type="checkbox" checked={!!formData.isAdmin} onChange={e => setFormData({...formData, isAdmin: e.target.checked})} />
             <label className="text-sm font-medium">Is Admin</label>
           </div>
           <div className="flex items-center gap-2">
-            <input type="checkbox" checked={formData.hasAnalytics} onChange={e => setFormData({...formData, hasAnalytics: e.target.checked})} />
+            <input type="checkbox" checked={!!formData.hasAnalytics} onChange={e => setFormData({...formData, hasAnalytics: e.target.checked})} />
             <label className="text-sm font-medium">Has Analytics</label>
           </div>
           <div className="flex items-center gap-2">
-            <input type="checkbox" checked={formData.allowTeamMembers} onChange={e => setFormData({...formData, allowTeamMembers: e.target.checked})} />
+            <input type="checkbox" checked={!!formData.allowTeamMembers} onChange={e => setFormData({...formData, allowTeamMembers: e.target.checked})} />
             <label className="text-sm font-medium">Allow Team Members</label>
           </div>
           <div className="flex justify-end gap-2">
