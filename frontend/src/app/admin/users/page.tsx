@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, Trash2, Edit, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { formatDate } from "@/lib/utils";
 
 export default function AdminUsersPage() {
   const { user, loading: authLoading } = useAuth();
@@ -16,29 +15,45 @@ export default function AdminUsersPage() {
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
-  const [idRange, setIdRange] = useState({ start: "", end: "" });
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState(""); // Input value
+  const [activeSearch, setActiveSearch] = useState(""); // Actual query sent to API
+  const [searchType, setSearchType] = useState<"id" | "email" | "name">("name");
+  
   const router = useRouter();
+  const debouncedTimeout = useRef<NodeJS.Timeout>();
 
-  const loadUsers = useCallback(async (p: number, s: string) => {
+  const loadUsers = useCallback(async (p: number, s: string, type: string) => {
     setLoading(true);
-    const res = await fetch(`/api/admin/users?page=${p}&search=${encodeURIComponent(s)}`, { credentials: "include" });
+    const res = await fetch(`/api/admin/users?page=${p}&search=${encodeURIComponent(s)}&searchType=${type}`, { credentials: "include" });
     if (res.ok) {
       setUsers(await res.json());
     }
     setLoading(false);
   }, []);
 
+  // Debouncing effect
+  useEffect(() => {
+    if (debouncedTimeout.current) clearTimeout(debouncedTimeout.current);
+    
+    debouncedTimeout.current = setTimeout(() => {
+        setActiveSearch(searchQuery);
+        setPage(1);
+    }, 500);
+
+    return () => clearTimeout(debouncedTimeout.current);
+  }, [searchQuery]);
+
   useEffect(() => {
     if (!authLoading && (!user || !user.isAdmin)) {
       router.push("/");
     } else {
-        loadUsers(page, search);
+        loadUsers(page, activeSearch, searchType);
     }
-  }, [user, authLoading, router, page, search, loadUsers]);
+  }, [user, authLoading, router, page, activeSearch, searchType, loadUsers]);
 
-  const deleteUser = async (id: number) => {
+  const deleteUser = async (id: string) => {
     if (!confirm("Are you sure?")) return;
     const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE", credentials: "include" });
     if (res.ok) {
@@ -47,24 +62,6 @@ export default function AdminUsersPage() {
     } else {
       toast.error("Failed to delete user");
     }
-  };
-
-  const bulkDeleteUsers = async () => {
-    const start = parseInt(idRange.start);
-    const end = parseInt(idRange.end);
-    if (isNaN(start) || isNaN(end) || start > end) {
-        toast.error("Invalid ID range");
-        return;
-    }
-    
-    // Perform bulk delete on backend (assuming we add a dedicated endpoint, 
-    // or call the delete endpoint repeatedly)
-    for (let id = start; id <= end; id++) {
-        await fetch(`/api/admin/users/${id}`, { method: "DELETE", credentials: "include" });
-    }
-    toast.success("Bulk delete complete");
-    setIsBulkDeleteOpen(false);
-    loadUsers(page, search);
   };
 
   const startEdit = (u: any) => {
@@ -98,21 +95,29 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (loading && users.length === 0) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+  if (authLoading || (loading && users.length === 0)) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">User Management</h1>
         <div className="flex gap-2">
-            <Button variant="destructive" onClick={() => setIsBulkDeleteOpen(true)}>Bulk Delete</Button>
+            <select 
+                className="p-2 border rounded-md text-sm"
+                value={searchType}
+                onChange={(e) => setSearchType(e.target.value as "id" | "email" | "name")}
+            >
+                <option value="name">Name</option>
+                <option value="email">Email</option>
+                <option value="id">ID</option>
+            </select>
             <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <input 
                     placeholder="Search users..." 
                     className="pl-8 p-2 border rounded-md" 
-                    value={search}
-                    onChange={(e) => {setSearch(e.target.value); setPage(1);}}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                 />
             </div>
         </div>
@@ -131,7 +136,7 @@ export default function AdminUsersPage() {
           <tbody className="divide-y">
             {users.map((u) => (
               <tr key={u.id}>
-                <td className="px-4 py-3">{u.id}</td>
+                <td className="px-4 py-3 font-mono text-xs">{u.id}</td>
                 <td className="px-4 py-3">{u.name}</td>
                 <td className="px-4 py-3">{u.email}</td>
                 <td className="px-4 py-3 text-right">
@@ -180,17 +185,6 @@ export default function AdminUsersPage() {
             <Button variant="ghost" onClick={() => setEditingUser(null)}>Cancel</Button>
             <Button onClick={saveUser}>Save</Button>
           </div>
-        </div>
-      </Modal>
-
-      <Modal isOpen={isBulkDeleteOpen} onClose={() => setIsBulkDeleteOpen(false)} title="Bulk Delete Users">
-        <div className="space-y-4">
-            <div><label className="block text-sm font-medium">Start User ID</label><input type="number" className="w-full p-2 border rounded" onChange={e => setIdRange({...idRange, start: e.target.value})} /></div>
-            <div><label className="block text-sm font-medium">End User ID</label><input type="number" className="w-full p-2 border rounded" onChange={e => setIdRange({...idRange, end: e.target.value})} /></div>
-            <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setIsBulkDeleteOpen(false)}>Cancel</Button>
-                <Button variant="destructive" onClick={bulkDeleteUsers}>Delete Range</Button>
-            </div>
         </div>
       </Modal>
     </div>

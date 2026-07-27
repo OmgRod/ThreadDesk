@@ -49,7 +49,7 @@ await app.register(cors, {
   credentials: true,
 });
 await app.register(cookie);
-await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 }, attachFieldsToBody: true });
+await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 }, attachFieldsToBody: false });
 await app.register(formbody);
 // Add rawBody for webhook signature verification
 await app.register(async (app) => {

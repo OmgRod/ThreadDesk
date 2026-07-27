@@ -66,9 +66,20 @@ export async function adminRoutes(app: FastifyInstance) {
   // Get all users
   app.get("/users", async (request, reply) => {
     await checkAdmin(request, reply);
-    const { page = 1, search = "" } = request.query as { page?: number; search?: string };
+    const { page = 1, search = "", searchType = "name" } = request.query as { page?: number; search?: string; searchType?: "id" | "email" | "name" };
     const limit = 20;
     const offset = (page - 1) * limit;
+
+    let whereClause = undefined;
+    if (search) {
+        if (searchType === "id") {
+            whereClause = eq(schema.users.id, search);
+        } else if (searchType === "email") {
+            whereClause = sql`${schema.users.email} ILIKE ${`%${search}%`}`;
+        } else {
+            whereClause = sql`${schema.users.name} ILIKE ${`%${search}%`}`;
+        }
+    }
 
     const users = await db
       .select({
@@ -84,11 +95,7 @@ export async function adminRoutes(app: FastifyInstance) {
         allowTeamMembers: schema.users.allowTeamMembers,
       })
       .from(schema.users)
-      .where(
-        search
-          ? sql`${schema.users.name} ILIKE ${`%${search}%`} OR ${schema.users.email} ILIKE ${`%${search}%`}`
-          : undefined
-      )
+      .where(whereClause)
       .orderBy(desc(schema.users.createdAt))
       .limit(limit)
       .offset(offset);
