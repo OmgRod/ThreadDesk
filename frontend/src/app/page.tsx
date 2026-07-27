@@ -1,12 +1,6 @@
 import Link from "next/link";
 import { MessageSquare, Bell, Building2 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "ThreadDesk",
-  description: "Omnichannel Communication Platform - Publish updates and manage discussions across multiple channels.",
-};
 
 export default function HomePage() {
   return (
