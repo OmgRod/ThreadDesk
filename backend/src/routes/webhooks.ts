@@ -101,7 +101,7 @@ export async function webhookRoutes(app: FastifyInstance) {
   });
 
   // Receive incoming webhook
-  app.post("/incoming/:orgId", async (request, reply) => {
+  app.post("/incoming/:orgId", async (request) => {
     const { orgId } = request.params as { orgId: string };
     const body = request.body;
 

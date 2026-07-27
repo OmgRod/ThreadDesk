@@ -2,7 +2,7 @@ import { Queue, Worker } from "bullmq";
 import { redis } from "./redis.js";
 import { WorkflowEngine } from "./workflowEngine.js";
 import { db, schema } from "../db/index.js";
-import { eq, and, lt } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 // Queue for workflow actions
 export const workflowQueue = new Queue("workflow-actions", {
@@ -25,7 +25,7 @@ export const scheduledQueue = new Queue("scheduled-tasks", {
 export const workflowWorker = new Worker(
   "workflow-actions",
   async (job) => {
-    const { organizationId, triggerType, payload, action } = job.data;
+    const { triggerType, payload, action } = job.data;
     console.log(`Processing action: ${action.type} for workflow trigger: ${triggerType}`);
     
     if (action.type === "webhook") {
@@ -46,7 +46,7 @@ export const workflowWorker = new Worker(
 // Worker to process scheduled tasks
 export const scheduledWorker = new Worker(
   "scheduled-tasks",
-  async (job) => {
+  async () => {
     const now = new Date();
     const workflows = await db
       .select()

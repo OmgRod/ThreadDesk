@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { db, schema } from "../db/index.js";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, sql, count } from "drizzle-orm";
 import { getUserFromToken } from "../middleware/auth.js";
 
 export async function analyticsRoutes(app: FastifyInstance) {
@@ -8,7 +8,6 @@ export async function analyticsRoutes(app: FastifyInstance) {
   app.post("/track", async (request, reply) => {
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
-    const userId = user.id;
 
     const body = request.body as any;
     await db.insert(schema.analyticsEvents).values({
@@ -23,12 +22,12 @@ export async function analyticsRoutes(app: FastifyInstance) {
   });
 
   // Get analytics for organization
-  app.get("/org/:orgId", async (request, reply) => {
+  app.get("/org/:orgId", async (request, _reply) => {
     const user = await getUserFromToken(request);
-    if (!user) return reply.status(401).send({ error: "Not authenticated" });
+    if (!user) return _reply.status(401).send({ error: "Not authenticated" });
 
     if (user.plan === "free" && !user.isAdmin) {
-      return reply.status(403).send({ error: "Analytics requires a Starter plan or higher" });
+      return _reply.status(403).send({ error: "Analytics requires a Starter plan or higher" });
     }
 
     const { orgId } = request.params as { orgId: string };

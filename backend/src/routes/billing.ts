@@ -9,18 +9,17 @@ const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
 const LEMON_SQUEEZY_STORE_ID = process.env.LEMON_SQUEEZY_STORE_ID;
 
 // Plan Variant IDs (These should be set in environment variables)
-const VARIANTS = {
+/*const VARIANTS = {
   starter: process.env.LS_STARTER_VARIANT_ID,
   pro: process.env.LS_PRO_VARIANT_ID,
   business: process.env.LS_BUSINESS_VARIANT_ID,
-};
+};*/
 
 export async function billingRoutes(app: FastifyInstance) {
   // Create a checkout session
   app.post("/checkout", async (request, reply) => {
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
-    const userId = user.id;
 
     const { variantId } = request.body as { variantId: string };
     if (!variantId) return reply.status(400).send({ error: "Variant ID is required" });

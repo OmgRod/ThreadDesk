@@ -32,7 +32,7 @@ export async function commentRoutes(app: FastifyInstance) {
   });
 
   // Get comments for a post
-  app.get("/post/:postId", async (request, reply) => {
+  app.get("/post/:postId", async (request) => {
     const { postId } = request.params as { postId: string };
     const comments = await db
       .select({
@@ -59,8 +59,6 @@ export async function commentRoutes(app: FastifyInstance) {
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
     const userId = user.id;
-
-    const { id } = request.params as { id: string };
 
     const [comment] = await db
       .select()

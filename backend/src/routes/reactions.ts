@@ -59,7 +59,7 @@ export async function reactionRoutes(app: FastifyInstance) {
   });
 
   // Get reactions for a post
-  app.get("/post/:postId", async (request, reply) => {
+  app.get("/post/:postId", async (request) => {
     const { postId } = request.params as { postId: string };
     const reactions = await db
       .select()

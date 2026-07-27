@@ -37,7 +37,7 @@ export async function followerRoutes(app: FastifyInstance) {
   });
 
   // Check if following
-  app.get("/:orgId/check", async (request, reply) => {
+  app.get("/:orgId/check", async (request) => {
     const user = await getUserFromToken(request);
     if (!user) return { following: false };
     const userId = user.id;

@@ -70,7 +70,7 @@ export async function postRoutes(app: FastifyInstance) {
   });
 
   // Get posts for organization (public)
-  app.get("/org/:orgId", async (request, reply) => {
+  app.get("/org/:orgId", async (request) => {
     const { orgId } = request.params as { orgId: string };
     const posts = await db
       .select({

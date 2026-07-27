@@ -12,7 +12,6 @@ export async function uploadRoutes(app: FastifyInstance) {
   app.post("/", async (request, reply) => {
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
-    const userId = user.id;
 
     const data = await request.file();
     if (!data) {

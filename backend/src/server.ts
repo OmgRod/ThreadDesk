@@ -53,7 +53,7 @@ await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 }, attachFi
 await app.register(formbody);
 // Add rawBody for webhook signature verification
 await app.register(async (app) => {
-    app.addHook('preValidation', async (request, reply) => {
+    app.addHook('preValidation', async (request) => {
         // This is a simplified way to capture raw body for specific routes
         if ((request as any).rawBody === undefined && request.body) {
             (request as any).rawBody = JSON.stringify(request.body);

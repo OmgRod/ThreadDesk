@@ -101,7 +101,6 @@ export async function workflowRoutes(app: FastifyInstance) {
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
     const userId = user.id;
 
-    const { id } = request.params as { id: string };
     const body = request.body as any;
 
     const [workflow] = await db
@@ -149,8 +148,6 @@ export async function workflowRoutes(app: FastifyInstance) {
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
     const userId = user.id;
-
-    const { id } = request.params as { id: string };
 
     const [workflow] = await db
       .select()

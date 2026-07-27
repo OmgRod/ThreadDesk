@@ -13,7 +13,7 @@ const createOrgSchema = z.object({
 
 export async function organizationRoutes(app: FastifyInstance) {
   // List all organizations
-  app.get("/", async (request, reply) => {
+  app.get("/", async () => {
     const orgs = await db.select().from(schema.organizations);
     return orgs;
   });
@@ -196,7 +196,7 @@ export async function organizationRoutes(app: FastifyInstance) {
   });
 
   // Get organization members
-  app.get("/:id/members", async (request, reply) => {
+  app.get("/:id/members", async (request) => {
     const { id } = request.params as { id: string };
     const members = await db
       .select({
@@ -326,7 +326,6 @@ export async function organizationRoutes(app: FastifyInstance) {
   app.get("/:id/invites", async (request, reply) => {
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
-    const userId = user.id;
 
     const { id } = request.params as { id: string };
     const invites = await db
@@ -346,7 +345,6 @@ export async function organizationRoutes(app: FastifyInstance) {
   app.delete("/:id/invites/:inviteId", async (request, reply) => {
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
-    const userId = user.id;
 
     const { inviteId } = request.params as { id: string; inviteId: string };
     await db
@@ -409,7 +407,6 @@ export async function organizationRoutes(app: FastifyInstance) {
   app.post("/invites/:inviteId/decline", async (request, reply) => {
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
-    const userId = user.id;
 
     const { inviteId } = request.params as { inviteId: string };
 

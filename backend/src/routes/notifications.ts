@@ -26,8 +26,6 @@ export async function notificationRoutes(app: FastifyInstance) {
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
     const userId = user.id;
 
-    const { id } = request.params as { id: string };
-
     await db
       .update(schema.notifications)
       .set({ read: true })
@@ -56,7 +54,7 @@ export async function notificationRoutes(app: FastifyInstance) {
   });
 
   // Get unread count
-  app.get("/unread-count", async (request, reply) => {
+  app.get("/unread-count", async (request) => {
     const user = await getUserFromToken(request);
     if (!user) return { count: 0 };
     const userId = user.id;

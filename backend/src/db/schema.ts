@@ -10,7 +10,6 @@ import {
   integer,
   pgEnum,
   uniqueIndex,
-  index,
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
