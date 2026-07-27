@@ -36,6 +36,7 @@ interface WorkflowForm {
   name: string;
   trigger: string;
   actions: Action[];
+  config?: Record<string, any>;
 }
 
 function ActionEditor({ action, onChange, onRemove }: { action: Action; onChange: (a: Action) => void; onRemove: () => void }) {
