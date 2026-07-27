@@ -132,7 +132,7 @@ export async function postRoutes(app: FastifyInstance) {
         schema.organizations,
         eq(schema.posts.organizationId, schema.organizations.id)
       )
-      .where(eq(schema.posts.id, id))
+      .where(eq(schema.posts.id, parseInt(id)))
       .limit(1);
 
     if (!post) {
@@ -159,7 +159,7 @@ export async function postRoutes(app: FastifyInstance) {
     const [post] = await db
       .select()
       .from(schema.posts)
-      .where(eq(schema.posts.id, id))
+      .where(eq(schema.posts.id, parseInt(id)))
       .limit(1);
 
     if (!post) return reply.status(404).send({ error: "Post not found" });
@@ -189,7 +189,7 @@ export async function postRoutes(app: FastifyInstance) {
         scheduledDate: body.scheduledDate ? new Date(body.scheduledDate) : null,
         updatedAt: new Date(),
       })
-      .where(eq(schema.posts.id, id))
+      .where(eq(schema.posts.id, parseInt(id)))
       .returning();
 
     return updated;
@@ -206,7 +206,7 @@ export async function postRoutes(app: FastifyInstance) {
     const [post] = await db
       .select()
       .from(schema.posts)
-      .where(eq(schema.posts.id, id))
+      .where(eq(schema.posts.id, parseInt(id)))
       .limit(1);
 
     if (!post) return reply.status(404).send({ error: "Post not found" });
@@ -226,7 +226,7 @@ export async function postRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: "Not authorized" });
     }
 
-    await db.delete(schema.posts).where(eq(schema.posts.id, id));
+    await db.delete(schema.posts).where(eq(schema.posts.id, parseInt(id)));
     return { success: true };
   });
 

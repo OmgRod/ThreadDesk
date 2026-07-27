@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import FormData from "form-data";
 
 export const TwitterService = {
-  async getValidToken(userId: number) {
+  async getValidToken(userId: string) {
     const [connection] = await db
       .select()
       .from(schema.twitterConnections)
@@ -44,7 +44,7 @@ export const TwitterService = {
     return connection.accessToken;
   },
 
-  async uploadMedia(userId: number, mediaUrl: string) {
+  async uploadMedia(userId: string, mediaUrl: string) {
     const accessToken = await this.getValidToken(userId);
     // Simplified: download and upload to Twitter.
     // In production, use chunked upload for large files.
@@ -63,7 +63,7 @@ export const TwitterService = {
     return uploadResponse.data.media_id_string;
   },
 
-  async postTweet(userId: number, text: string, mediaUrls: string[] = []) {
+  async postTweet(userId: string, text: string, mediaUrls: string[] = []) {
     let accessToken = await this.getValidToken(userId);
     const mediaIds = [];
     
@@ -103,7 +103,7 @@ export const TwitterService = {
     }
   },
 
-  async refreshAndGetToken(userId: number) {
+  async refreshAndGetToken(userId: string) {
     const [connection] = await db
       .select()
       .from(schema.twitterConnections)

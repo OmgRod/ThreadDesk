@@ -3,6 +3,7 @@ import { db, schema } from "../db/index.js";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
 import { getUserFromToken } from "../middleware/auth.js";
+import { parse } from "path";
 
 const workflowSchema = z.object({
   organizationId: z.number().int(),
@@ -97,6 +98,8 @@ export async function workflowRoutes(app: FastifyInstance) {
 
   // Update workflow
   app.put("/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
     const userId = user.id;
@@ -106,7 +109,7 @@ export async function workflowRoutes(app: FastifyInstance) {
     const [workflow] = await db
       .select()
       .from(schema.workflows)
-      .where(eq(schema.workflows.id, ))
+      .where(eq(schema.workflows.id, parseInt(id)))
       .limit(1);
 
     if (!workflow) return reply.status(404).send({ error: "Workflow not found" });
@@ -137,7 +140,7 @@ export async function workflowRoutes(app: FastifyInstance) {
         active: body.active,
         updatedAt: new Date(),
       })
-      .where(eq(schema.workflows.id, ))
+      .where(eq(schema.workflows.id, parseInt(id)))
       .returning();
 
     return updated;
@@ -145,6 +148,8 @@ export async function workflowRoutes(app: FastifyInstance) {
 
   // Delete workflow
   app.delete("/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
     const userId = user.id;
@@ -152,7 +157,7 @@ export async function workflowRoutes(app: FastifyInstance) {
     const [workflow] = await db
       .select()
       .from(schema.workflows)
-      .where(eq(schema.workflows.id, ))
+      .where(eq(schema.workflows.id, parseInt(id)))
       .limit(1);
 
     if (!workflow) return reply.status(404).send({ error: "Workflow not found" });
@@ -175,7 +180,7 @@ export async function workflowRoutes(app: FastifyInstance) {
 
     await db
       .delete(schema.workflows)
-      .where(eq(schema.workflows.id, ));
+      .where(eq(schema.workflows.id, parseInt(id)));
 
     return { success: true };
   });

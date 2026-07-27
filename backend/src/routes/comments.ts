@@ -56,6 +56,8 @@ export async function commentRoutes(app: FastifyInstance) {
 
   // Delete comment
   app.delete("/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
     const userId = user.id;
@@ -63,7 +65,7 @@ export async function commentRoutes(app: FastifyInstance) {
     const [comment] = await db
       .select()
       .from(schema.comments)
-      .where(eq(schema.comments.id, ))
+      .where(eq(schema.comments.id, parseInt(id)))
       .limit(1);
 
     if (!comment) return reply.status(404).send({ error: "Comment not found" });
@@ -98,7 +100,7 @@ export async function commentRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: "Not authorized" });
     }
 
-    await db.delete(schema.comments).where(eq(schema.comments.id, ));
+    await db.delete(schema.comments).where(eq(schema.comments.id, parseInt(id)));
 
     return { success: true };
   });

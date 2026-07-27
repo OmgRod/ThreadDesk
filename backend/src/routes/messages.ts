@@ -26,13 +26,14 @@ export async function messageRoutes(app: FastifyInstance) {
       .orderBy(desc(schema.messages.createdAt));
 
     // Build conversation map (keyed by the other user's ID)
-    const conversationsMap = new Map<number, any>();
+    const conversationsMap = new Map<string, typeof allMessages[0]>();
     for (const msg of allMessages) {
       const otherId = msg.senderId === uid ? msg.receiverId : msg.senderId;
       if (!conversationsMap.has(otherId)) {
         conversationsMap.set(otherId, msg);
       }
     }
+
 
     // Fetch user details for each conversation partner
     const conversations = await Promise.all(
@@ -63,7 +64,10 @@ export async function messageRoutes(app: FastifyInstance) {
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
     const uid = user.id;
     const { userId } = request.params as { userId: string };
+
+    // We expect user IDs to be UUID strings now
     const otherId = userId;
+
 
     const msgs = await db
       .select()
@@ -91,7 +95,7 @@ export async function messageRoutes(app: FastifyInstance) {
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
     const uid = user.id;
 
-    const { receiverId, content } = request.body as { receiverId: number; content: string };
+    const { receiverId, content } = request.body as { receiverId: string; content: string };
 
     if (!receiverId || !content?.trim()) {
       return reply.status(400).send({ error: "receiverId and content are required" });

@@ -22,6 +22,8 @@ export async function notificationRoutes(app: FastifyInstance) {
 
   // Mark as read
   app.put("/:id/read", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    
     const user = await getUserFromToken(request);
     if (!user) return reply.status(401).send({ error: "Not authenticated" });
     const userId = user.id;
@@ -31,7 +33,7 @@ export async function notificationRoutes(app: FastifyInstance) {
       .set({ read: true })
       .where(
         and(
-          eq(schema.notifications.id, ),
+          eq(schema.notifications.id, parseInt(id)),
           eq(schema.notifications.userId, userId)
         )
       );

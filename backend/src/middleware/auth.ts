@@ -13,7 +13,7 @@ export async function getUserFromToken(request: any) {
   if (!token) return null;
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     const [user] = await db
       .select()
       .from(schema.users)

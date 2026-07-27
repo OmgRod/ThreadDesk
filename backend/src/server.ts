@@ -99,11 +99,11 @@ try {
   await app.listen({ port: PORT, host: HOST });
   
   // Set first user as admin if not already
-  const [firstUser] = await db.select().from(schema.users).where(eq(schema.users.id, 1)).limit(1);
-  if (firstUser && !firstUser.isAdmin) {
-    await db.update(schema.users).set({ isAdmin: true }).where(eq(schema.users.id, 1));
-    console.log("Admin privileges granted to user ID 1.");
-  }
+  // const [firstUser] = await db.select().from(schema.users).where(eq(schema.users.id, 1)).limit(1);
+  // if (firstUser && !firstUser.isAdmin) {
+  //   await db.update(schema.users).set({ isAdmin: true }).where(eq(schema.users.id, 1));
+  //   console.log("Admin privileges granted to user ID 1.");
+  // }
 
   // Add periodic task to poll for scheduled posts
   await scheduledQueue.add("poll-scheduled", {}, {
