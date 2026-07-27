@@ -21,6 +21,6 @@ read user_id
 # Run the SQL command using the DB_USER from .env
 # PGPASSWORD allows non-interactive password entry
 export PGPASSWORD=$DB_PASSWORD
-docker exec -it $DB_CONTAINER psql -U "$DB_USER" -d "$DB_NAME" -c "UPDATE users SET is_admin = true WHERE id = $user_id;"
+docker exec -it $DB_CONTAINER psql -U "$DB_USER" -d "$DB_NAME" -c "UPDATE users SET is_admin = true WHERE id = '$user_id';"
 
 echo "Admin access granted to user $user_id."

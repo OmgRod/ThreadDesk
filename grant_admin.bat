@@ -23,7 +23,7 @@ for /f "tokens=1,2 delims=:" %%a in ("%USER_PASS%") do (
 
 set /p user_id="Enter your ThreadDesk User ID to grant admin access: "
 
-powershell -Command "$dbUrl = '%DB_URL%'; $uri = [System.Uri]$dbUrl; $user = $uri.UserInfo.Split(':')[0]; $pass = $uri.UserInfo.Split(':')[1]; $db = $uri.AbsolutePath.Substring(1); $env:PGPASSWORD=$pass; docker exec -it threaddesk-db psql -U $user -d $db -c 'UPDATE users SET is_admin = true WHERE id = %user_id%;'"
+powershell -Command "$dbUrl = '%DB_URL%'; $uri = [System.Uri]$dbUrl; $user = $uri.UserInfo.Split(':')[0]; $pass = $uri.UserInfo.Split(':')[1]; $db = $uri.AbsolutePath.Substring(1); $env:PGPASSWORD=$pass; docker exec -it threaddesk-postgres psql -U $user -d $db -c 'UPDATE users SET is_admin = true WHERE id = ''%user_id%'';'"
 
 echo Admin access granted to user %user_id%.
 pause
