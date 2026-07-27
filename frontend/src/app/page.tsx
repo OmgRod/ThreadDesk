@@ -1,13 +1,14 @@
-"use client";
-
 import Link from "next/link";
-import { MessageSquare, Bell, Building2, ArrowRight } from "lucide-react";
+import { MessageSquare, Bell, Building2 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
-import { useAuth } from "@/context/AuthContext";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "ThreadDesk",
+  description: "Omnichannel Communication Platform - Publish updates and manage discussions across multiple channels.",
+};
 
 export default function HomePage() {
-  const { user } = useAuth();
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900">
       <Navbar />
@@ -25,7 +26,7 @@ export default function HomePage() {
           </p>
           <div className="mt-10 flex items-center justify-center gap-4">
             <Link
-              href={user ? "/dashboard" : "/auth"}
+              href="/dashboard"
               className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium"
             >
               Get Started

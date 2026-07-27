@@ -11,23 +11,31 @@ export function ChangelogModal() {
   const [data, setData] = useState<any>(null);
 
   useEffect(() => {
+    console.log("ChangelogModal: checking status");
+
     fetch("/api/changelog/status", { credentials: "include" })
-      .then((res) => res.json())
+      .then((res) => {
+        console.log("ChangelogModal: API status =", res.status);
+        return res.json();
+      })
       .then((data) => {
-        if (data.isUpdateAvailable) {
+        console.log("ChangelogModal: API data =", data);
+        
+        const lastSeenVersion = localStorage.getItem("lastSeenVersion");
+        
+        if (data.latestVersion && data.latestVersion !== lastSeenVersion) {
+          console.log("ChangelogModal: new version detected, showing modal");
           setData(data);
           setIsOpen(true);
+        } else {
+          console.log("ChangelogModal: no update available");
         }
-      });
+      })
+      .catch(err => console.error("ChangelogModal: Error checking changelog:", err));
   }, []);
 
   const acknowledge = async () => {
-    await fetch("/api/changelog/acknowledge", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ version: data.latestVersion }),
-      credentials: "include",
-    });
+    localStorage.setItem("lastSeenVersion", data.latestVersion);
     setIsOpen(false);
   };
 
